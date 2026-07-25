@@ -1,0 +1,6 @@
+iter,name,total_trades,win_rate_pct,profit_factor,total_return_pct,max_drawdown_pct,sharpe_approx,avg_win_usd,avg_loss_usd,final_equity,avg_duration_bars,time_stop_exits,stop_exits,tp_exits,timeframe,total_bars,strategy,use_atfs,params
+1,EMA_Trend_Baseline,76,34.21,0.55,-12.8,-14.92,-0.81,1.2232,-1.1481,174.4,4.0,14,60,2,h1,42168,EMA_Trend_Baseline,False,ADX20.0_SL1.5_TP2.5_TS8_TRAIL1.0_ACT1.5
+2,ATFS_v1_TrailPure,64,37.5,0.61,-9.4,-12.39,-0.61,1.2183,-1.2008,181.2,3.7,0,63,1,h1,42168,ATFS_v1,True,ADX20.0_SL1.5_TP2.5_TS12_TRAIL1.0_ACT1.5
+3,ATFS_v2_Trail08,64,28.12,0.55,-10.42,-13.02,-0.71,1.405,-1.0027,179.17,2.9,0,64,0,h1,42168,ATFS_v2,True,ADX20.0_SL1.5_TP2.5_TS12_TRAIL0.8_ACT1.0
+4,ATFS_v3_ADX22,47,38.3,0.75,-4.31,-8.34,-0.3,1.452,-1.1985,191.38,3.6,0,46,1,h1,42168,ATFS_v3,True,ADX22.0_SL1.5_TP2.5_TS12_TRAIL1.0_ACT1.5
+5,ATFS_v4_Premium,47,38.3,0.75,-4.31,-8.34,-0.3,1.452,-1.1985,191.38,3.6,0,46,1,h1,42168,ATFS_v4,True,ADX22.0_SL1.5_TP2.5_TS12_TRAIL1.0_ACT1.5

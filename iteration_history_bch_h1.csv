@@ -1,0 +1,8 @@
+total_trades,win_rate_pct,profit_factor,total_return_pct,max_drawdown_pct,sharpe_approx,avg_win_usd,avg_loss_usd,final_equity,avg_duration_bars,time_stop_exits,stop_exits,tp_exits,timeframe,total_bars,params,use_vwap,use_donchian,trend_filter_h4,iteration,description
+62,29.03,0.4,-12.21,-12.9,-1.09,0.8952,-0.9213,175.57,3.6,7,55,0,h1,42168,ADX20.0_SL1.5_TP2.5_TS8_SES13,False,False,False,1,Baseline H1
+51,25.49,0.31,-12.45,-12.85,-1.19,0.8591,-0.9489,175.11,3.5,6,45,0,h1,42168,ADX25.0_SL1.5_TP3.0_TS8_SES13,False,False,False,2,ADX25 + TP3.0
+51,25.49,0.31,-12.45,-12.85,-1.19,0.8591,-0.9489,175.11,3.5,6,45,0,h1,42168,ADX25.0_SL1.5_TP3.0_TS8_SES13,False,False,True,3,ADX25 + TP3.0 + H4
+32,25.0,0.23,-12.31,-12.31,-1.19,0.9153,-1.3307,175.39,2.9,3,28,1,h1,42168,ADX22.0_SL1.0_TP2.0_TS8_SES13,True,False,False,4,VWAP_MR
+52,17.31,0.28,-12.24,-12.65,-1.25,1.0803,-0.7956,175.51,3.6,7,45,0,h1,42168,ADX25.0_SL1.5_TP3.0_TS8_SES13,False,True,False,5,Donchian
+35,25.71,0.27,-12.25,-12.25,-1.15,0.9939,-1.2861,175.51,2.8,3,31,1,h1,42168,ADX20.0_SL1.0_TP2.0_TS8_SES13,True,True,True,6,Ensemble
+51,25.49,0.31,-12.45,-12.85,-1.19,0.8591,-0.9489,175.11,3.5,6,45,0,h1,42168,ADX25.0_SL1.5_TP3.0_TS8_SES5,False,False,True,7,Premium_Session + H4

@@ -1,0 +1,8 @@
+total_trades,win_rate_pct,profit_factor,total_return_pct,max_drawdown_pct,sharpe_approx,avg_win_usd,avg_loss_usd,final_equity,avg_duration_bars,time_stop_exits,stop_exits,tp_exits,timeframe,total_bars,params,use_vwap,use_donchian,trend_filter_h4,iteration,config,error
+62.0,29.03,0.4,-12.21,-12.9,-1.09,0.8952,-0.9213,175.57,3.6,7.0,55.0,0.0,H1,42168.0,ADX20.0_SL1.5_TP2.5_TS8_SES13,False,False,False,1,H1_ADX20.0_SL1.5_TP2.5_TS8,
+,,,,,,,,,,,,,M5,,,,,,2,M5_ADX20.0_SL1.0_TP2.0_TS16,unexpected_tf:m5
+,,,,,,,,,,,,,M5,,,,,,3,M5_ADX25.0_SL1.0_TP2.5_TS16,unexpected_tf:m5
+36.0,19.44,0.34,-12.35,-12.35,-0.85,1.8196,-1.2912,175.29,2.5,0.0,35.0,1.0,M15,54721.0,ADX20.0_SL1.0_TP2.0_TS8_SES24,False,False,False,4,M15_ADX20.0_SL1.0_TP2.0_TS8,
+36.0,19.44,0.22,-12.14,-12.14,-1.09,0.9835,-1.0745,175.72,2.6,0.0,36.0,0.0,M15,54721.0,ADX22.0_SL1.5_TP2.5_TS8_SES13,False,False,True,5,M15_ADX22.0_SL1.5_TP2.5_TS8,
+,,,,,,,,,,,,,M5,,,,,,6,M5_ADX25.0_SL1.0_TP2.5_TS16,unexpected_tf:m5
+77.0,29.87,0.6,-12.3,-15.13,-0.48,1.5954,-1.1349,175.41,2.8,4.0,73.0,0.0,M15,54721.0,ADX25.0_SL1.5_TP3.0_TS8_SES13,False,True,False,7,M15_ADX25.0_SL1.5_TP3.0_TS8,
