@@ -1,15 +1,1 @@
-{
-  "recommendations": [
-    {
-      "id": "rec_20260725_234755_0",
-      "tipo": "estrategia",
-      "severidad": "alta",
-      "mensaje": "Estrategia rango solo 25% WR en 15 trades",
-      "accion": "Ajustar parametros de rango en strategies/ o reducir su peso",
-      "fecha": "2026-07-25T23:47:55.779884",
-      "aplicada": false
-    }
-  ],
-  "history_count": 1,
-  "last_update": "2026-07-25T23:47:55.781740"
-}
+{"recommendations":[],"history_count":0,"last_update":"2026-07-25"}

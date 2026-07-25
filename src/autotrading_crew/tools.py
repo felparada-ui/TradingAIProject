@@ -322,60 +322,153 @@ def compute_order_flow_imbalance(symbol: str, df_json: str = None) -> str:
 
 def generate_technical_signal(symbol: str) -> str:
     """
-    Genera una señal técnica completa con SL y TP dinámicos.
-    En modo MT5, usa precio real del mercado.
+    Genera señal técnica REAL usando velas OHLCV de MT5.
+
+    Análisis:
+      1. EMA 9/21 crossover → tendencia
+      2. RSI 14 → sobrecompra/sobreventa
+      3. Bollinger Bands 20/2 → squeeze/expansión
+      4. ATR 14 → volatilidad para SL/TP
+
+    Si no hay MT5, retorna NEUTRAL (no arriesga).
     """
-    # Intentar obtener precio real desde MT5 si está conectado
-    real_price = None
-    real_atr = None
-    if _executor and hasattr(_executor, '_last_tick') and _executor._last_tick:
-        # Obtener tick específico para este símbolo
-        try:
-            import MetaTrader5 as mt5_signal
-            mt5_sym = _executor._normalize_symbol(symbol)
-            mt5_signal.symbol_select(mt5_sym, True)
-            tick = mt5_signal.symbol_info_tick(mt5_sym)
-            if tick and tick.bid > 0 and tick.ask > 0:
-                real_price = (tick.bid + tick.ask) / 2
-                real_atr = real_price * 0.003  # ATR estimado ~0.3%
-        except Exception:
-            pass
+    current_price = None
+    atr = None
+    side = "NEUTRAL"
+    confidence = 0
+    mt5_symbol = symbol
 
-    if real_price and real_price > 0:
-        current_price = real_price
-        atr = real_atr or real_price * 0.005
-        # Señal direccional basada en VWAP
-        side = np.random.choice(["BUY", "SELL", "NEUTRAL"], p=[0.35, 0.35, 0.30])
-    else:
-        np.random.seed(hash(f"{symbol}_tech_signal") % 2 ** 31)
-        current_price = np.random.uniform(100, 500)
-        atr = current_price * np.random.uniform(0.005, 0.02)
-        side = np.random.choice(["BUY", "SELL", "NEUTRAL"], p=[0.35, 0.35, 0.30])
+    try:
+        import MetaTrader5 as mt5_real
+        import pandas as pd
+        import numpy as np
 
-    if side == "BUY":
-        sl = current_price - atr * 1.5
-        tp = current_price + atr * 3.0
-    elif side == "SELL":
-        sl = current_price + atr * 1.5
-        tp = current_price - atr * 3.0
-    else:
-        sl = current_price - atr
-        tp = current_price + atr
+        # Obtener el símbolo MT5
+        if _executor and hasattr(_executor, '_normalize_symbol'):
+            mt5_symbol = _executor._normalize_symbol(symbol)
 
-    confidence = round(np.random.uniform(45, 92), 1) if not real_price else round(np.random.uniform(55, 95), 1)
-    rr = round(abs(tp - current_price) / abs(current_price - sl), 2) if abs(current_price - sl) > 0 else 0
+        mt5_real.symbol_select(mt5_symbol, True)
+
+        # Obtener velas H1 (últimas 100)
+        rates = mt5_real.copy_rates_from_pos(mt5_symbol, mt5_real.TIMEFRAME_H1, 0, 100)
+        if rates is None or len(rates) < 50:
+            return json.dumps({
+                "symbol": symbol, "signal": "NEUTRAL", "confidence": 0,
+                "entry": 0, "stop_loss": 0, "take_profit": 0, "atr": 0,
+                "rr_ratio": 0, "error": "Datos insuficientes"
+            })
+
+        df = pd.DataFrame(rates)
+        close = df["close"].values
+        high = df["high"].values
+        low = df["low"].values
+
+        current_price = close[-1]
+
+        # ─── EMA 9/21 Crossover ──────────────────────────────────────────
+        ema9 = _ema(close, 9)
+        ema21 = _ema(close, 21)
+        trend_up = ema9[-1] > ema21[-1] and ema9[-2] <= ema21[-2]
+        trend_down = ema9[-1] < ema21[-1] and ema9[-2] >= ema21[-2]
+
+        # ─── RSI 14 ──────────────────────────────────────────────────────
+        rsi = _rsi(close, 14)
+        rsi_val = rsi[-1]
+        oversold = rsi_val < 35
+        overbought = rsi_val > 65
+
+        # ─── Bollinger Bands 20/2 ────────────────────────────────────────
+        sma20 = np.mean(close[-20:])
+        std20 = np.std(close[-20:])
+        bb_upper = sma20 + 2 * std20
+        bb_lower = sma20 - 2 * std20
+        bb_width = (bb_upper - bb_lower) / sma20
+        near_upper = current_price >= bb_upper * 0.995
+        near_lower = current_price <= bb_lower * 1.005
+
+        # ─── ATR 14 ──────────────────────────────────────────────────────
+        tr = np.maximum(high[1:] - low[1:],
+                        np.maximum(np.abs(high[1:] - close[:-1]),
+                                   np.abs(low[1:] - close[:-1])))
+        atr = np.mean(tr[-14:])
+
+        # ─── Lógica de decisión ──────────────────────────────────────────
+        buy_score = 0
+        sell_score = 0
+
+        if trend_up: buy_score += 30
+        if trend_down: sell_score += 30
+        if oversold: buy_score += 20
+        if overbought: sell_score += 20
+        if near_lower and oversold: buy_score += 15
+        if near_upper and overbought: sell_score += 15
+        if bb_width > 0.05:  # Bandas amplias = tendencia
+            if trend_up: buy_score += 10
+            if trend_down: sell_score += 10
+        else:  # Bandas estrechas = posible breakout
+            buy_score += 5
+            sell_score += 5
+
+        if buy_score > sell_score and buy_score >= 40:
+            side = "BUY"
+            confidence = min(95, buy_score + np.random.randint(-5, 10))
+            sl = current_price - atr * 1.5
+            tp = current_price + atr * 3.0
+        elif sell_score > buy_score and sell_score >= 40:
+            side = "SELL"
+            confidence = min(95, sell_score + np.random.randint(-5, 10))
+            sl = current_price + atr * 1.5
+            tp = current_price - atr * 3.0
+        else:
+            side = "NEUTRAL"
+            confidence = max(buy_score, sell_score)
+
+    except Exception as e:
+        # Sin MT5 o error: no arriesgar, retornar NEUTRAL
+        import logging
+        logging.getLogger(__name__).debug(f"generate_technical_signal error: {e}")
+        return json.dumps({
+            "symbol": symbol, "signal": "NEUTRAL", "confidence": 0,
+            "entry": 0, "stop_loss": 0, "take_profit": 0, "atr": 0,
+            "rr_ratio": 0, "error": str(e)
+        })
+
+    rr = round(abs(tp - current_price) / abs(current_price - sl), 2) if sl != current_price and abs(current_price - sl) > 0 else 0
 
     return json.dumps({
         "symbol": symbol,
         "signal": side,
-        "confidence": confidence,
+        "confidence": round(confidence, 1),
         "entry": round(current_price, 5),
         "stop_loss": round(sl, 5),
         "take_profit": round(tp, 5),
         "atr": round(atr, 5),
         "rr_ratio": rr,
-        "real_price": real_price is not None,
+        "real_price": True,
     })
+
+
+def _ema(values, period):
+    """Exponential Moving Average."""
+    result = np.zeros_like(values)
+    result[:period] = np.mean(values[:period])
+    alpha = 2 / (period + 1)
+    for i in range(period, len(values)):
+        result[i] = alpha * values[i] + (1 - alpha) * result[i - 1]
+    return result
+
+
+def _rsi(values, period):
+    """Relative Strength Index."""
+    deltas = np.diff(values)
+    gains = np.where(deltas > 0, deltas, 0)
+    losses = np.where(deltas < 0, -deltas, 0)
+    avg_gain = np.convolve(gains, np.ones(period) / period, mode="valid")
+    avg_loss = np.convolve(losses, np.ones(period) / period, mode="valid") + 1e-10
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    pad = np.full(len(values) - len(rsi), 50.0)
+    return np.concatenate([pad, rsi])
 
 
 # ============================================================================
