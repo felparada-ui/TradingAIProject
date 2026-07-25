@@ -25,6 +25,58 @@
       "timestamp": "2026-07-25T16:52:48.671687",
       "_open_since": "2026-07-25 16:52:48.677326",
       "_bars_held": 0
+    },
+    {
+      "symbol": "ETH/USD",
+      "side": "BUY",
+      "regime": "rango",
+      "entry_price": 1870.2,
+      "stop_loss": 1860.34063,
+      "take_profit": 1885.56875,
+      "net_pnl_usd": 0.0,
+      "rr_ratio": 0,
+      "timestamp": "2026-07-25T17:19:30.659102",
+      "_open_since": "2026-07-25 17:19:30.668760",
+      "_bars_held": 0
+    },
+    {
+      "symbol": "ETH/USD",
+      "side": "BUY",
+      "regime": "rango",
+      "entry_price": 1871.23,
+      "stop_loss": 1861.36599,
+      "take_profit": 1886.60802,
+      "net_pnl_usd": 0.0,
+      "rr_ratio": 0,
+      "timestamp": "2026-07-25T17:41:00.418049",
+      "_open_since": "2026-07-25 17:41:00.425558",
+      "_bars_held": 0
+    },
+    {
+      "symbol": "ETH/USD",
+      "side": "BUY",
+      "regime": "rango",
+      "entry_price": 1872.16,
+      "stop_loss": 1862.29181,
+      "take_profit": 1887.54639,
+      "net_pnl_usd": 0.0,
+      "rr_ratio": 0,
+      "timestamp": "2026-07-25T17:56:47.826977",
+      "_open_since": "2026-07-25 17:56:47.841281",
+      "_bars_held": 0
+    },
+    {
+      "symbol": "BTC/USD",
+      "side": "SELL",
+      "regime": "rango",
+      "entry_price": 64303.2,
+      "stop_loss": 64598.5914,
+      "take_profit": 63730.4172,
+      "net_pnl_usd": 0.0,
+      "rr_ratio": 0,
+      "timestamp": "2026-07-25T18:02:11.166453",
+      "_open_since": "2026-07-25 18:02:11.173870",
+      "_bars_held": 0
     }
   ],
   "failed_symbols": {
@@ -33,32 +85,38 @@
     "BCH/USD": 1,
     "SOL/USD": 1,
     "EUR/USD": 2,
-    "NZD/USD": 2,
+    "NZD/USD": 3,
     "XAU/USD": 2,
     "USD/CHF": 3,
     "LTC/USD": 2,
     "XAG/USD": 3,
     "AUD/USD": 2,
     "USD/CAD": 2,
-    "GBP/JPY": 2,
+    "GBP/JPY": 3,
     "EUR/JPY": 3
   },
   "adjustments": [],
   "strategy_stats": {
     "rango": {
-      "trades": 2,
+      "trades": 6,
       "wins": 0,
-      "losses": 2,
+      "losses": 6,
       "pnl": 0.0,
       "avg_rr": 0.0
     }
   },
   "symbol_stats": {
     "ETH/USD": {
-      "trades": 2,
+      "trades": 5,
       "wins": 0,
       "pnl": 0.0,
-      "consecutive_fails": 2
+      "consecutive_fails": 5
+    },
+    "BTC/USD": {
+      "trades": 1,
+      "wins": 0,
+      "pnl": 0.0,
+      "consecutive_fails": 1
     }
   }
 }

@@ -38,6 +38,7 @@ from src.autotrading_crew.risk_manager import RiskManager
 from src.autotrading_crew.execution_trader import MT5Executor
 from src.autotrading_crew.regime_detector import RegimeDetector
 from src.autotrading_crew.performance_monitor import PerformanceMonitor
+from src.autotrading_crew.portfolio_supervisor import PortfolioSupervisor
 
 # Telegram (opcional — no rompe si no está configurado)
 try:
@@ -95,6 +96,12 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     """
     global _perf_monitor
     general = config.get("general", {})
+    
+    # Inicializar supervisor de cartera (persiste entre ciclos)
+    if not hasattr(run_autonomous_cycle, "_supervisor"):
+        run_autonomous_cycle._supervisor = PortfolioSupervisor(config)
+    supervisor = run_autonomous_cycle._supervisor
+    
     print(f"\n{'='*60}")
     print(f"  🚀 CICLO AUTÓNOMO — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}")
@@ -236,6 +243,55 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     cb = risk_manager.check_circuit_breaker(0)
     if cb["circuit_breaker_active"]:
         print(f"   ❌ Circuit breaker activo: {', '.join(cb['reasons'])}")
+        return
+
+    # ─── FASE 3.5: SUPERVISOR DE CARTERA ─────────────────────────────────
+    print(f"\n📋 [FASE 3.5] Portfolio Supervisor — Evaluando contra cartera...")
+
+    # Obtener posiciones abiertas desde MT5
+    open_positions = []
+    try:
+        import MetaTrader5 as mt5_pos
+        pos_result = mt5_pos.positions_get()
+        if pos_result:
+            for p in pos_result:
+                open_positions.append({
+                    "symbol": p.symbol,
+                    "side": "BUY" if p.type == 0 else "SELL",
+                    "volume": p.volume,
+                    "entry_price": p.price_open,
+                    "current_price": p.price_current,
+                    "stop_loss": p.sl,
+                    "take_profit": p.tp,
+                    "profit": p.profit,
+                    "swap": p.swap,
+                })
+    except Exception:
+        pass
+
+    # Validar propuesta contra cartera
+    proposal = {
+        "symbol": best_candidate["symbol"],
+        "signal": best_candidate["signal"],
+        "entry": best_candidate["entry"],
+        "stop_loss": best_candidate["stop_loss"],
+        "take_profit": best_candidate["take_profit"],
+        "confidence": best_candidate["adjusted_confidence"],
+        "regime": best_candidate.get("regime", "unknown"),
+    }
+    sv_result = supervisor.validate_trade_proposal(proposal, open_positions)
+
+    print(f"   Decisión: {'✅ GO' if sv_result['approved'] else '❌ NO-GO'}")
+    for r in sv_result.get("reasons", []):
+        print(f"      {r}")
+    for w in sv_result.get("warnings", []):
+        print(f"      ⚠️  {w}")
+
+    if not sv_result["approved"]:
+        # También verificar si hay posiciones para cerrar
+        exits = supervisor.check_positions_for_exit(open_positions)
+        for ex in exits:
+            print(f"   💡 Sugerencia: cerrar {ex['symbol']} {ex['side']} — {ex['reason']}")
         return
 
     # ─── FASE 4: EJECUCIÓN ─────────────────────────────────────────────────
