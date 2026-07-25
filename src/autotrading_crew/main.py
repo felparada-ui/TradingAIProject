@@ -35,9 +35,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from src.autotrading_crew import tools as crew_tools
 from src.autotrading_crew.agents import load_agents
 from src.autotrading_crew.risk_manager import RiskManager
-from src.autotrading_crew.sentiment_tracker import SentimentTracker
 from src.autotrading_crew.execution_trader import MT5Executor
 from src.autotrading_crew.regime_detector import RegimeDetector
+from src.autotrading_crew.performance_monitor import PerformanceMonitor
 
 # Telegram (opcional — no rompe si no está configurado)
 try:
@@ -48,6 +48,9 @@ except ImportError:
     def _send_message(text, **kwargs): return False
 
 logger = logging.getLogger(__name__)
+
+# Monitor global de rendimiento
+_perf_monitor: PerformanceMonitor = None
 
 
 # ============================================================================
@@ -98,7 +101,17 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     # ─── FASE 1: BARRIDO ───────────────────────────────────────────────────
     print("\n📡 [FASE 1] Quant Strategist — Escaneando mercado...")
     scan_result = json.loads(crew_tools.scan_market_assets())
-    top_symbols = [a["symbol"] for a in scan_result.get("top_assets", [])[:3]]
+    top_symbols = [a["symbol"] for a in scan_result.get("top_assets", [])[:5]]
+    
+    # Filtrar símbolos excluidos por mal rendimiento
+    global _perf_monitor
+    if _perf_monitor:
+        excluded = _perf_monitor.get_excluded_symbols()
+        top_symbols = [s for s in top_symbols if s not in excluded]
+        if excluded:
+            print(f"   ⛔ Excluidos: {', '.join(e for e in excluded if e in [a['symbol'] for a in scan_result.get('top_assets',[])]) or ''}")
+    
+    top_symbols = top_symbols[:3]
     print(f"   Top 3 activos: {', '.join(top_symbols)}")
 
     # Detectar régimen para cada activo top
@@ -112,6 +125,12 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
 
     # ─── FASE 2: ANÁLISIS CRUZADO ──────────────────────────────────────────
     print("\n🔬 [FASE 2] Technical Scout + Sentiment Tracker — Analizando...")
+    
+    # Precargar precios reales desde MT5 para señales precisas
+    if hasattr(crew_tools._executor, '_check_spread') and crew_tools._executor._connected:
+        for symbol in top_symbols:
+            crew_tools._executor._check_spread(symbol)  # Pobla _last_tick con precio real
+    
     candidates = []
     for symbol in top_symbols:
         # Análisis técnico
@@ -211,21 +230,40 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
         tp=best_candidate["take_profit"],
     ))
 
-    if exec_result.get("order_sent"):
-        print(f"   ✅ Orden ejecutada: ID={exec_result.get('order_id')} | "
-              f"Precio=${exec_result.get('price', 0)} | "
-              f"Volumen={exec_result.get('volume', 0)}")
-        risk_manager.register_trade({
-            "symbol": best_candidate["symbol"],
-            "side": best_candidate["signal"],
-            "entry_price": exec_result.get("price", best_candidate["entry"]),
-            "stop_loss": best_candidate["stop_loss"],
-            "take_profit": best_candidate["take_profit"],
-            "volume": pos_size["units"],
-            "timestamp": datetime.now().isoformat(),
-        })
-    else:
-        print(f"   ❌ Orden rechazada: {exec_result.get('error', 'Desconocido')}")
+    # Registrar resultado en el monitor de rendimiento
+    global _perf_monitor
+    if _perf_monitor:
+        if exec_result.get("order_sent"):
+            trade_record = {
+                "symbol": best_candidate["symbol"],
+                "side": best_candidate["signal"],
+                "regime": best_candidate.get("regime", "unknown"),
+                "entry_price": exec_result.get("price", best_candidate["entry"]),
+                "stop_loss": best_candidate["stop_loss"],
+                "take_profit": best_candidate["take_profit"],
+                "net_pnl_usd": 0.0,  # Se actualizará al cerrar
+                "rr_ratio": best_candidate.get("rr", 0),
+                "timestamp": datetime.now().isoformat(),
+            }
+            _perf_monitor.register_trade_result(trade_record)
+            risk_manager.register_trade(trade_record)
+            print(f"   ✅ Orden ejecutada: ID={exec_result.get('order_id')} | "
+                  f"Precio=${exec_result.get('price', 0)} | "
+                  f"Volumen={exec_result.get('volume', 0)}")
+        else:
+            error = exec_result.get('error', 'Desconocido')
+            _perf_monitor.register_failed_execution(best_candidate["symbol"], error)
+            print(f"   ❌ Orden rechazada: {error}")
+
+    # ─── Reporte de rendimiento ─────────────────────────────────────────────
+    if _perf_monitor:
+        summary = _perf_monitor.get_summary()
+        if summary.get("total_trades", 0) > 0:
+            print(f"\n📊 Rendimiento: {summary['total_trades']} trades | "
+                  f"WR: {summary['win_rate']}% | PnL: ${summary['total_pnl']:.2f}")
+            if summary.get("adjustments"):
+                for adj in summary["adjustments"][-3:]:
+                    print(f"   🔧 {adj}")
 
     print(f"\n{'='*60}")
     print(f"  ✅ CICLO COMPLETADO")
@@ -314,6 +352,14 @@ def run_live_cycle(config: dict, risk_manager: RiskManager):
     Igual que autonomous pero con MT5 real y notificaciones Telegram.
     """
     executor = MT5Executor(config)
+    global _perf_monitor
+    if _perf_monitor is None:
+        _perf_monitor = PerformanceMonitor(config)
+
+    # Cargar símbolos excluidos por mal rendimiento
+    excluded = _perf_monitor.get_excluded_symbols()
+    if excluded:
+        print(f"   ⛔ Símbolos excluidos: {', '.join(excluded)}")
 
     # ─── Conectar MT5 ───────────────────────────────────────────────────────
     print("\n🔌 Conectando a MetaTrader 5...")
