@@ -93,6 +93,7 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     Ejecuta un ciclo completo de trading SIN LLM.
     Las herramientas se llaman directamente con lógica programática.
     """
+    global _perf_monitor
     general = config.get("general", {})
     print(f"\n{'='*60}")
     print(f"  🚀 CICLO AUTÓNOMO — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -104,7 +105,6 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     top_symbols = [a["symbol"] for a in scan_result.get("top_assets", [])[:5]]
     
     # Filtrar símbolos excluidos por mal rendimiento
-    global _perf_monitor
     if _perf_monitor:
         excluded = _perf_monitor.get_excluded_symbols()
         top_symbols = [s for s in top_symbols if s not in excluded]
@@ -231,7 +231,6 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     ))
 
     # Registrar resultado en el monitor de rendimiento
-    global _perf_monitor
     if _perf_monitor:
         if exec_result.get("order_sent"):
             trade_record = {
