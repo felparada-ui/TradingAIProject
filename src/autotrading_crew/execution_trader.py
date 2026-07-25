@@ -167,12 +167,26 @@ class MT5Executor:
 
         order_type = mt5.ORDER_TYPE_BUY if side.upper() == "BUY" else mt5.ORDER_TYPE_SELL
 
+        # Asegurar que el símbolo está activo y obtener precio actual
+        mt5.symbol_select(mt5_symbol, True)
+        tick = mt5.symbol_info_tick(mt5_symbol)
+        if tick is None:
+            return {"error": f"No se pudo obtener precio para {mt5_symbol}", "order_sent": False}
+
+        current_price = tick.ask if order_type == mt5.ORDER_TYPE_BUY else tick.bid
+        if current_price is None or current_price <= 0:
+            return {"error": f"Precio inválido para {mt5_symbol}: {current_price}", "order_sent": False}
+
+        # Convertir volumen: el sistema usa unidades, MT5 usa lotes
+        # Para forex: 1 lote = 100,000 unidades. Mínimo 0.01 lotes.
+        mt5_volume = max(0.01, round(volume / 100000, 2))
+
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
             "symbol": mt5_symbol,
-            "volume": volume,
+            "volume": mt5_volume,
             "type": order_type,
-            "price": mt5.symbol_info_tick(symbol).ask if order_type == mt5.ORDER_TYPE_BUY else mt5.symbol_info_tick(symbol).bid,
+            "price": current_price,
             "sl": stop_loss if stop_loss > 0 else 0.0,
             "tp": take_profit if take_profit > 0 else 0.0,
             "deviation": self.max_slippage,
