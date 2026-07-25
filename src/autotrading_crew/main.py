@@ -203,6 +203,20 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     # ─── FASE 4: EJECUCIÓN ─────────────────────────────────────────────────
     print(f"\n⚡ [FASE 4] Execution Trader — Ejecutando orden...")
 
+    # Verificar precio del símbolo en MT5 antes de ejecutar
+    try:
+        import MetaTrader5 as mt5_check
+        from src.autotrading_crew.execution_trader import MT5Executor as ExecCheck
+        exec_check = ExecCheck(config)
+        mt5_sym = exec_check._normalize_symbol(best_candidate["symbol"])
+        mt5_check.symbol_select(mt5_sym, True)
+        tick_check = mt5_check.symbol_info_tick(mt5_sym)
+        if tick_check is None or (tick_check.ask == 0 and tick_check.bid == 0):
+            print(f"   ⏭️  Símbolo {best_candidate['symbol']} sin precio en MT5 — buscando otro...")
+            return
+    except Exception:
+        pass  # Si no hay MT5, seguir igual
+
     exec_result = json.loads(crew_tools.place_market_order(
         symbol=best_candidate["symbol"],
         side=best_candidate["signal"],
