@@ -177,9 +177,8 @@ class MT5Executor:
         if current_price is None or current_price <= 0:
             return {"error": f"Precio inválido para {mt5_symbol}: {current_price}", "order_sent": False}
 
-        # Convertir volumen: el sistema usa unidades, MT5 usa lotes
-        # Para forex: 1 lote = 100,000 unidades. Mínimo 0.01 lotes.
-        mt5_volume = max(0.01, round(volume / 100000, 2))
+        # El volumen ya viene en lotes MT5 (0.01, 0.10, 1.0, etc.)
+        mt5_volume = max(0.01, round(volume, 2))
 
         request = {
             "action": mt5.TRADE_ACTION_DEAL,

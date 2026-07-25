@@ -126,10 +126,29 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     # ─── FASE 2: ANÁLISIS CRUZADO ──────────────────────────────────────────
     print("\n🔬 [FASE 2] Technical Scout + Sentiment Tracker — Analizando...")
     
-    # Precargar precios reales desde MT5 para señales precisas
+    # Verificar qué símbolos tienen precio real en MT5
+    valid_symbols = []
     if hasattr(crew_tools._executor, '_check_spread') and crew_tools._executor._connected:
         for symbol in top_symbols:
-            crew_tools._executor._check_spread(symbol)  # Pobla _last_tick con precio real
+            spread_check = crew_tools._executor._check_spread(symbol)
+            if spread_check.get("ok"):
+                valid_symbols.append(symbol)
+                print(f"   ✅ {symbol:10s} — Spread: {spread_check.get('spread', '?')} pts")
+            else:
+                reason = spread_check.get('error', f"spread {spread_check.get('spread', '?')}")
+                print(f"   ⏭️  {symbol:10s} — {reason}")
+                if _perf_monitor:
+                    _perf_monitor.register_failed_execution(symbol, reason)
+    else:
+        valid_symbols = top_symbols  # Sin MT5, usar todos
+    
+    if not valid_symbols:
+        print("   ❌ Ningún símbolo con precio válido — saltando análisis")
+        return
+    
+    # Usar solo símbolos con precio válido
+    top_symbols = valid_symbols[:3]
+    print(f"   Símbolos válidos: {', '.join(top_symbols)}")
     
     candidates = []
     for symbol in top_symbols:
@@ -225,7 +244,7 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     exec_result = json.loads(crew_tools.place_market_order(
         symbol=best_candidate["symbol"],
         side=best_candidate["signal"],
-        volume=float(pos_size["units"]),
+        volume=float(pos_size.get("lot_size", 0.01)),  # Usar lot_size directamente
         sl=best_candidate["stop_loss"],
         tp=best_candidate["take_profit"],
     ))
