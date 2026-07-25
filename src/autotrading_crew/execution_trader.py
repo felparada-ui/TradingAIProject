@@ -178,7 +178,7 @@ class MT5Executor:
             return {"error": f"Precio inválido para {mt5_symbol}: {current_price}", "order_sent": False}
 
         # El volumen ya viene en lotes MT5 (0.01, 0.10, 1.0, etc.)
-        mt5_volume = max(0.01, round(volume, 2))
+        mt5_volume = max(0.01, min(0.10, round(volume, 2)))  # Máx 0.10 lotes para seguridad en demo $500
 
         request = {
             "action": mt5.TRADE_ACTION_DEAL,
@@ -459,7 +459,7 @@ class MT5Executor:
         elif mt5_symbol in ["XAUUSD", "XAGUSD"]:
             max_allowed = 100   # Commodities
         else:
-            max_allowed = self.max_spread  # Forex: 20
+            max_allowed = self.max_spread  # Forex: 30
 
         # Verificar que el símbolo existe
         info = mt5.symbol_info(mt5_symbol)

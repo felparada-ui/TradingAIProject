@@ -100,7 +100,7 @@ mt5:
   password: ""                              # Se lee de .env si está vacío
   timeout_ms: 5000                          # Timeout de conexión
   max_slippage: 10                          # Slippage máximo en puntos
-  max_spread: 20                            # Spread máximo permitido en puntos
+  max_spread: 30                            # Spread máximo permitido en forex (GBP/USD=26)
   magic_number: 202401                      # Magic number para identificar órdenes
 
 # =============================================================================

@@ -329,10 +329,17 @@ def generate_technical_signal(symbol: str) -> str:
     real_price = None
     real_atr = None
     if _executor and hasattr(_executor, '_last_tick') and _executor._last_tick:
-        tick = _executor._last_tick
-        if tick.get("ask", 0) > 0 and tick.get("bid", 0) > 0:
-            real_price = (tick["ask"] + tick["bid"]) / 2
-            real_atr = real_price * 0.005  # ATR estimado ~0.5%
+        # Obtener tick específico para este símbolo
+        try:
+            import MetaTrader5 as mt5_signal
+            mt5_sym = _executor._normalize_symbol(symbol)
+            mt5_signal.symbol_select(mt5_sym, True)
+            tick = mt5_signal.symbol_info_tick(mt5_sym)
+            if tick and tick.bid > 0 and tick.ask > 0:
+                real_price = (tick.bid + tick.ask) / 2
+                real_atr = real_price * 0.003  # ATR estimado ~0.3%
+        except Exception:
+            pass
 
     if real_price and real_price > 0:
         current_price = real_price
