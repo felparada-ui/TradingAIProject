@@ -447,37 +447,43 @@ class MT5Executor:
         return None
 
     def _check_spread(self, symbol: str) -> dict:
-        """Verifica que el spread esté dentro del límite."""
+        """Verifica que el spread esté dentro del límite según tipo de activo."""
         if not _MT5_AVAILABLE:
             return {"ok": True, "spread": 5, "symbol": symbol}
 
         mt5_symbol = self._normalize_symbol(symbol)
-        
-        # Verificar que el símbolo existe y es tradeable
+
+        # Spread máximo según tipo de activo
+        crypto_symbols = ["BTCUSD", "ETHUSD", "SOLUSD", "BCHUSD", "LTCUSD", "XRPUSD"]
+        if mt5_symbol in crypto_symbols:
+            max_allowed = 2000  # Crypto tiene spreads altos
+        elif mt5_symbol in ["XAUUSD", "XAGUSD"]:
+            max_allowed = 100   # Commodities
+        else:
+            max_allowed = self.max_spread  # Forex: 20
+
+        # Verificar que el símbolo existe
         info = mt5.symbol_info(mt5_symbol)
         if info is None:
             logger.warning(f"Simbolo {mt5_symbol} no disponible en MT5")
             return {"ok": False, "spread": 999, "error": f"Simbolo {mt5_symbol} no disponible"}
-        
+
         if not info.visible:
             mt5.symbol_select(mt5_symbol, True)
-            
+
         tick = mt5.symbol_info_tick(mt5_symbol)
         if tick is None:
             logger.warning(f"No se pudo obtener tick para {mt5_symbol}")
             return {"ok": False, "spread": 999, "error": f"Sin datos de mercado para {mt5_symbol}"}
 
         spread = (tick.ask - tick.bid) / info.point if info.point > 0 else (tick.ask - tick.bid) * 10000
-        self._last_tick = {"ask": tick.ask, "bid": tick.bid, "spread": spread}
+        self._last_tick = {"ask": tick.ask, "bid": tick.bid, "spread": spread, "symbol": mt5_symbol}
 
-        if spread > self.max_spread:
+        if spread > max_allowed:
+            logger.info(f"Spread {spread:.0f} para {mt5_symbol} > maximo {max_allowed}")
             return {"ok": False, "spread": round(spread, 1), "symbol": mt5_symbol}
 
         return {"ok": True, "spread": round(spread, 1), "symbol": mt5_symbol}
-        if tick is None:
-            return {"ok": False, "spread": -1, "error": "No se pudo obtener tick"}
-
-        spread = (tick.ask - tick.bid) / tick.point if tick.point > 0 else (tick.ask - tick.bid) * 10000
         self._last_tick = {"ask": tick.ask, "bid": tick.bid, "spread": spread}
 
         if spread > self.max_spread:
