@@ -1,0 +1,125 @@
+# =============================================================================
+# CONFIGURACIÓN GENERAL DEL SISTEMA MULTI-AGENTE DE AUTOTRADING
+# =============================================================================
+# Este archivo permite ajustar todos los parámetros operativos sin tocar
+# el código fuente. Los cambios se recargan en cada ciclo de la Crew.
+# =============================================================================
+
+general:
+  capital_inicial: 500.0           # Capital inicial en USD (demo ICMarketsSC)
+  divisa_cuenta: "USD"
+  modo_operacion: "demo"            # demo | real
+  ciclo_segundos: 300               # 5 minutos entre ciclos completos
+  max_activos_escanear: 25          # Activos a analizar en Fase 1
+  top_activos_elegir: 3             # Mejores activos que pasan a Fase 2
+  max_operaciones_simultaneas: 2    # Máx operaciones con capital $500
+  idioma_reportes: "es"             # es | en
+
+# =============================================================================
+# CONFIGURACIÓN DE RIESGO
+# =============================================================================
+riesgo:
+  riesgo_maximo_por_operacion: 2.0          # % del capital por operación ($10 con $500)
+  riesgo_maximo_diario: 5.0                 # % drawdown diario → circuit breaker ($25)
+  riesgo_maximo_total: 15.0                 # % drawdown total → stop total ($75)
+  factor_volatilidad_atr: 1.5               # Multiplicador ATR para SL inicial
+  take_profit_minimo_rr: 1.5                # Relación riesgo/recompensa mínima (1.5 para estrategias ATR)
+  trailing_activacion: 1.5                  # RR a partir del cual se activa trailing
+  trailing_step: 0.3                        # Distancia del trailing stop en ATR
+  correlacion_maxima_permisible: 0.70       # Correlación máxima entre posiciones abiertas
+  
+  # --- Comisiones Swap (overnight) ---
+  swap_diario_forex: 0.15                   # Swap por día en USD (mini lot 10K)
+  swap_diario_crypto: 0.50                  # Swap por día en USD (crypto)
+  swap_diario_etf: 0.10                     # Swap por día en USD (CFD indices)
+  max_dias_operacion: 5                     # Máx días sin cerrar (swap erosiona)
+
+# =============================================================================
+# PESOS DE AGENTES EN EL CONSENSO (deben sumar 1.0)
+# =============================================================================
+pesos_agentes:
+  quant_strategist: 0.30
+  technical_scout: 0.35
+  sentiment_tracker: 0.15
+  risk_manager: 0.20
+
+# =============================================================================
+# DETECCIÓN DE REGÍMENES DE MERCADO
+# =============================================================================
+regimen:
+  ventana_adx: 22                           # Periodo ADX para fuerza de tendencia
+  umbral_tendencia_adx: 25                  # ADX > 25 → tendencia
+  ventana_bb: 20                            # Periodo Bollinger Bands
+  desviacion_bb: 2.0                        # Desviación estándar BB
+  umbral_rango_bb: 0.15                     # Ancho BB relativo < 15% → rango
+  ventana_atr: 14                           # Periodo ATR
+  umbral_alta_volatilidad: 1.5              # ATR > 1.5x media → alta volatilidad
+  ventana_eficiencia: 50                    # Periodos para ratio de eficiencia
+
+# =============================================================================
+# INDICADORES TÉCNICOS
+# =============================================================================
+indicadores:
+  # Estrategia de Tendencia (Breakout)
+  tendencia:
+    ema_rapida: 9
+    ema_media: 21
+    ema_lenta: 55
+    adx_periodo: 22
+    adx_umbral: 25
+    rsi_periodo: 14
+    rsi_sobrecompra: 70
+    rsi_sobreventa: 30
+
+  # Estrategia de Rango (Reversión a la Media)
+  rango:
+    bb_periodo: 20
+    bb_desviacion: 2.0
+    rsi_periodo: 14
+    rsi_limite_inferior: 30
+    rsi_limite_superior: 70
+    stochastic_k: 14
+    stochastic_d: 3
+
+  # Estrategia de Alta Volatilidad (Momentum)
+  alta_volatilidad:
+    atr_periodo: 14
+    atr_mult_entry: 1.0
+    atr_mult_sl: 1.5
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+
+# =============================================================================
+# MT5 (MetaTrader 5)
+# =============================================================================
+mt5:
+  path: ""                                  # Ruta al terminal MT5 (vacío = autodetect)
+  server: "ICMarkets-Demo"
+  login: 0                                  # Se lee de .env si está en 0
+  password: ""                              # Se lee de .env si está vacío
+  timeout_ms: 5000                          # Timeout de conexión
+  max_slippage: 10                          # Slippage máximo en puntos
+  max_spread: 20                            # Spread máximo permitido en puntos
+  magic_number: 202401                      # Magic number para identificar órdenes
+
+# =============================================================================
+# SENTIMIENTO Y NOTICIAS
+# =============================================================================
+sentimiento:
+  fuentes:
+    - "ForexFactory"
+    - "Twitter"
+    - "Reddit"
+  ventana_horas: 4                          # Noticias relevantes en últimas 4h
+  impacto_minimo: 2                         # Impacto mínimo en escala 1-3
+  ventana_atencion: 24                      # Horas de ventana para eventos programados
+
+# =============================================================================
+# LOGS Y REPORTES
+# =============================================================================
+logging:
+  nivel: "INFO"                             # DEBUG | INFO | WARNING | ERROR
+  archivo: "logs/autotrading_crew.log"
+  formato: "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+  reportes_dir: "data/backtest_results/"
