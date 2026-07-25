@@ -241,6 +241,20 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     # ─── FASE 4: EJECUCIÓN ─────────────────────────────────────────────────
     print(f"\n⚡ [FASE 4] Execution Trader — Ejecutando orden...")
 
+    # Verificar que no haya posición abierta en el mismo símbolo en MT5
+    try:
+        import MetaTrader5 as mt5_check
+        mt5_sym_check = _executor._normalize_symbol(best_candidate["symbol"]) if hasattr(_executor, '_normalize_symbol') else best_candidate["symbol"]
+        mt5_check.symbol_select(mt5_sym_check, True)
+        existing_positions = mt5_check.positions_get(symbol=mt5_sym_check)
+        if existing_positions and len(existing_positions) > 0:
+            for pos in existing_positions:
+                pos_side = "BUY" if pos.type == 0 else "SELL"
+                print(f"   ⏭️  Ya hay posición {pos_side} abierta en {best_candidate['symbol']} — saltando")
+            return
+    except Exception:
+        pass  # Sin MT5, seguir igual
+
     exec_result = json.loads(crew_tools.place_market_order(
         symbol=best_candidate["symbol"],
         side=best_candidate["signal"],

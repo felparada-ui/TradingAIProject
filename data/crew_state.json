@@ -9,7 +9,22 @@
       "take_profit": 1886.63829,
       "net_pnl_usd": 0.0,
       "rr_ratio": 0,
-      "timestamp": "2026-07-25T16:47:21.378046"
+      "timestamp": "2026-07-25T16:47:21.378046",
+      "_open_since": "2026-07-25 16:47:21.379086",
+      "_bars_held": 0
+    },
+    {
+      "symbol": "ETH/USD",
+      "side": "SELL",
+      "regime": "rango",
+      "entry_price": 1868.42,
+      "stop_loss": 1878.28441,
+      "take_profit": 1853.04117,
+      "net_pnl_usd": 0.0,
+      "rr_ratio": 0,
+      "timestamp": "2026-07-25T16:52:48.671687",
+      "_open_since": "2026-07-25 16:52:48.677326",
+      "_bars_held": 0
     }
   ],
   "failed_symbols": {
@@ -25,25 +40,25 @@
     "XAG/USD": 3,
     "AUD/USD": 2,
     "USD/CAD": 2,
-    "GBP/JPY": 1,
-    "EUR/JPY": 2
+    "GBP/JPY": 2,
+    "EUR/JPY": 3
   },
   "adjustments": [],
   "strategy_stats": {
     "rango": {
-      "trades": 1,
+      "trades": 2,
       "wins": 0,
-      "losses": 1,
+      "losses": 2,
       "pnl": 0.0,
       "avg_rr": 0.0
     }
   },
   "symbol_stats": {
     "ETH/USD": {
-      "trades": 1,
+      "trades": 2,
       "wins": 0,
       "pnl": 0.0,
-      "consecutive_fails": 1
+      "consecutive_fails": 2
     }
   }
 }
