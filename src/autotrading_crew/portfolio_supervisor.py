@@ -132,7 +132,6 @@ class PortfolioSupervisor:
             pos_time = pos.get("timestamp", pos.get("entry_time", ""))
             if pos_time:
                 try:
-                    from datetime import datetime
                     if isinstance(pos_time, str):
                         pos_dt = datetime.fromisoformat(pos_time.replace("Z", "+00:00").split(".")[0])
                     else:

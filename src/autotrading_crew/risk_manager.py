@@ -101,6 +101,15 @@ class RiskManager:
         final_units = int(lot_size * min_lot_units)
 
         position_value = final_units * entry_price
+
+        # ─── Safety cap: máximo 20x el balance ─────────────────────────
+        max_position_value = balance * 20
+        if position_value > max_position_value:
+            reduction = max_position_value / position_value
+            lot_size = max(0.01, round(lot_size * reduction, 2))
+            final_units = int(lot_size * min_lot_units)
+            position_value = final_units * entry_price
+
         risk_pct = (position_value * risk_per_unit / entry_price) / balance * 100 if balance > 0 else 0
 
         return {
