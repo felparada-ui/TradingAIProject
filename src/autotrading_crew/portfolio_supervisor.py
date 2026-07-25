@@ -97,13 +97,17 @@ class PortfolioSupervisor:
             "indices": ["SPY", "QQQ", "IWM", "DIA", "SP500", "NAS100", "US30"],
         }
 
-        # Determinar sector del nuevo trade
-        new_sector = "unknown"
+        # Determinar sector del nuevo trade (orden de prioridad: crypto > commodities > indices > forex)
+        new_sector = "forex"  # default
         upper_sym = symbol.upper()
-        for sector, keywords in sectors.items():
-            if any(kw in upper_sym for kw in keywords):
-                new_sector = sector
-                break
+        # Crypto tiene prioridad (contiene nombre de crypto)
+        crypto_keywords = ["BTC", "ETH", "SOL", "BCH", "LTC", "XRP", "ADA", "DOT", "LINK"]
+        if any(kw in upper_sym for kw in crypto_keywords):
+            new_sector = "crypto"
+        elif any(kw in upper_sym for kw in ["XAU", "XAG"]):
+            new_sector = "commodities"
+        elif any(kw in upper_sym for kw in ["SPY", "QQQ", "IWM", "DIA", "SP500", "NAS100", "US30", "US2000"]):
+            new_sector = "indices"
 
         # Contar posiciones abiertas por sector
         sector_counts = {s: 0 for s in sectors}

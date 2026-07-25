@@ -77,30 +77,57 @@
       "timestamp": "2026-07-25T18:02:11.166453",
       "_open_since": "2026-07-25 18:02:11.173870",
       "_bars_held": 0
+    },
+    {
+      "symbol": "BCH/USD",
+      "side": "BUY",
+      "regime": "rango",
+      "entry_price": 209.74,
+      "stop_loss": 208.1491,
+      "take_profit": 210.97181,
+      "net_pnl_usd": 0.0,
+      "rr_ratio": 0,
+      "timestamp": "2026-07-25T18:34:07.282356",
+      "_open_since": "2026-07-25 18:34:07.290780",
+      "_bars_held": 0
+    },
+    {
+      "symbol": "BTC/USD",
+      "side": "BUY",
+      "regime": "rango",
+      "entry_price": 64345.61,
+      "stop_loss": 64050.08175,
+      "take_profit": 64918.66649,
+      "net_pnl_usd": 0.0,
+      "rr_ratio": 0,
+      "timestamp": "2026-07-25T18:44:42.758094",
+      "_open_since": "2026-07-25 18:44:42.768547",
+      "_bars_held": 0
     }
   ],
   "failed_symbols": {
     "XRP/USD": 3,
     "GBP/USD": 3,
     "BCH/USD": 1,
-    "SOL/USD": 2,
+    "SOL/USD": 3,
     "EUR/USD": 2,
     "NZD/USD": 3,
-    "XAU/USD": 2,
+    "XAU/USD": 3,
     "USD/CHF": 3,
-    "LTC/USD": 2,
+    "LTC/USD": 3,
     "XAG/USD": 3,
-    "AUD/USD": 2,
-    "USD/CAD": 2,
+    "AUD/USD": 3,
+    "USD/CAD": 3,
     "GBP/JPY": 3,
-    "EUR/JPY": 3
+    "EUR/JPY": 3,
+    "BTC/USD": 1
   },
   "adjustments": [],
   "strategy_stats": {
     "rango": {
-      "trades": 6,
+      "trades": 8,
       "wins": 0,
-      "losses": 6,
+      "losses": 8,
       "pnl": 0.0,
       "avg_rr": 0.0
     }
@@ -113,6 +140,12 @@
       "consecutive_fails": 5
     },
     "BTC/USD": {
+      "trades": 2,
+      "wins": 0,
+      "pnl": 0.0,
+      "consecutive_fails": 2
+    },
+    "BCH/USD": {
       "trades": 1,
       "wins": 0,
       "pnl": 0.0,
