@@ -474,7 +474,7 @@ def main():
         if args.ciclos == 0 or ciclo_count < args.ciclos:
             wait_minutes = args.ciclo_minutos
             print(f"\n⏳ Esperando {wait_minutes} minuto(s) para el siguiente ciclo...\n")
-            time.sleep(wait_minutos * 60)
+            time.sleep(wait_minutes * 60)
 
     if args.dashboard:
         print("\n📊 Iniciando dashboard...")
