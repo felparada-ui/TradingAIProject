@@ -41,6 +41,7 @@ from src.autotrading_crew.performance_monitor import PerformanceMonitor
 from src.autotrading_crew.portfolio_supervisor import PortfolioSupervisor
 from src.autotrading_crew.continuous_improvement import ContinuousImprovement
 from src.autotrading_crew.master_trader import MasterTrader
+from src.autotrading_crew.trading_strategist import TradingStrategist
 
 # Telegram (opcional — no rompe si no está configurado)
 try:
@@ -104,9 +105,11 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
         run_autonomous_cycle._supervisor = PortfolioSupervisor(config)
         run_autonomous_cycle._improver = ContinuousImprovement(config)
         run_autonomous_cycle._master = MasterTrader(config)
+        run_autonomous_cycle._strategist = TradingStrategist(config)
     supervisor = run_autonomous_cycle._supervisor
     improver = run_autonomous_cycle._improver
     master = run_autonomous_cycle._master
+    strategist = run_autonomous_cycle._strategist
     
     print(f"\n{'='*60}")
     print(f"  🚀 CICLO AUTÓNOMO — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -186,6 +189,24 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
         sentiment_adj = sentiment.get("adjustment_pct", 0)
         adjusted_confidence = base_confidence + sentiment_adj
         adjusted_confidence = max(0, min(100, adjusted_confidence))
+
+        # ─── Trading Strategist: filtra entradas malas ─────────────────
+        strategy_plan = strategist.select_strategy(
+            symbol, regimes[symbol]["regime_name"], context
+        )
+        spread_value = 0
+        if hasattr(crew_tools._executor, '_last_tick') and crew_tools._executor._last_tick:
+            spread_value = crew_tools._executor._last_tick.get("spread", 0)
+        entry_check = strategist.validate_entry(
+            {"confidence": adjusted_confidence, "rr_ratio": tech_signal.get("rr_ratio", 0), "entry": tech_signal.get("entry", 0)},
+            strategy_plan,
+            spread_value
+        )
+
+        if not entry_check["approved"]:
+            for r in entry_check["reasons"]:
+                print(f"      [Estratega] {r}")
+            continue  # Saltar este símbolo
 
         candidates.append({
             "symbol": symbol,
