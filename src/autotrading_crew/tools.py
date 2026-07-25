@@ -395,6 +395,8 @@ def generate_technical_signal(symbol: str) -> str:
         # ─── Lógica de decisión ──────────────────────────────────────────
         buy_score = 0
         sell_score = 0
+        sl = current_price
+        tp = current_price
 
         if trend_up: buy_score += 30
         if trend_down: sell_score += 30
