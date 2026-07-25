@@ -344,7 +344,7 @@ class RiskManager:
 
             # Advertencia si lleva muchos días
             if days_open > max_dias:
-                logger.warning(f"PosiciÃ³n en {symbol} lleva {days_open} dÃas — swap acumulado: ${swap_cost:.2f}")
+                logger.warning(f"Posicion en {symbol} lleva {days_open} dias — swap acumulado: ${swap_cost:.2f}")
 
         return total_swap
 

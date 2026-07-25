@@ -66,18 +66,18 @@ class DataProvider:
         if exchange_symbol:
             df = self._fetch_from_ccxt(exchange_symbol, timeframe, days)
             if df is not None:
-                logger.info(f"📡 Datos reales CCXT para {symbol}: {len(df)} velas")
+                logger.info(f"[CCXT] Datos reales para {symbol}: {len(df)} velas")
                 return df
 
         # 2. Intentar CSV local
         csv_path = f"data/{symbol.replace('/', '_')}_{timeframe}.csv"
         df = self._load_from_csv(csv_path)
         if df is not None:
-            logger.info(f"💾 Datos CSV para {symbol}: {len(df)} velas")
+            logger.info(f"[CSV] Datos para {symbol}: {len(df)} velas")
             return df
 
         # 3. Fallback: sintético
-        logger.warning(f"⚙️  Sin fuente real para {symbol} — usando datos sintéticos")
+        logger.warning(f"[SINTETICO] Sin fuente real para {symbol} — usando datos sinteticos")
         return self._generate_synthetic(symbol, days, timeframe)
 
     def fetch_multi_asset(self, symbols: list[str], timeframe: str = "1h", days: int = 180) -> dict[str, pd.DataFrame]:

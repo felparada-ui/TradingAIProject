@@ -149,7 +149,7 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     
     # Verificar qué símbolos tienen precio real en MT5
     valid_symbols = []
-    if hasattr(crew_tools._executor, '_check_spread') and crew_tools._executor._connected:
+    if hasattr(crew_tools, '_executor') and crew_tools._executor and crew_tools._executor._connected:
         for symbol in top_symbols:
             spread_check = crew_tools._executor._check_spread(symbol)
             if spread_check.get("ok"):
@@ -389,7 +389,7 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     # ─── MEJORA CONTINUA ────────────────────────────────────────────────
     cycle_data = {
         "failed_symbols": dict(_perf_monitor.failed_symbols) if _perf_monitor else {},
-        "candidates": candidates if 'candidates' in dir() else [],
+        "candidates": candidates,
         "total_trades": len(_perf_monitor.trades) if _perf_monitor else 0,
         "active_roles": ["quant_strategist", "technical_scout", "sentiment_tracker",
                          "risk_manager", "portfolio_supervisor", "execution_trader"],
@@ -491,10 +491,18 @@ def run_live_cycle(config: dict, risk_manager: RiskManager):
     """
     Igual que autonomous pero con MT5 real y notificaciones Telegram.
     """
-    executor = MT5Executor(config)
     global _perf_monitor
+    executor = MT5Executor(config)
     if _perf_monitor is None:
         _perf_monitor = PerformanceMonitor(config)
+
+    # ─── DIAGNÓSTICO DE PRE-VUELO ──────────────────────────────────────────
+    from src.autotrading_crew.diagnose import run_diagnostic
+    diag = run_diagnostic(config)
+    if diag.get("symbols", {}).get("available", 0) == 0 and diag.get("symbols", {}).get("status") != "simulated":
+        print("\n   ❌ Sin símbolos disponibles con precio — abortando")
+        print("   Verifica la conexión MT5 o activa símbolos en Ctrl+U")
+        return
 
     # Cargar símbolos excluidos por mal rendimiento
     excluded = _perf_monitor.get_excluded_symbols()
