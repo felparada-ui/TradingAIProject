@@ -39,6 +39,7 @@ from src.autotrading_crew.execution_trader import MT5Executor
 from src.autotrading_crew.regime_detector import RegimeDetector
 from src.autotrading_crew.performance_monitor import PerformanceMonitor
 from src.autotrading_crew.portfolio_supervisor import PortfolioSupervisor
+from src.autotrading_crew.continuous_improvement import ContinuousImprovement
 
 # Telegram (opcional — no rompe si no está configurado)
 try:
@@ -100,7 +101,9 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     # Inicializar supervisor de cartera (persiste entre ciclos)
     if not hasattr(run_autonomous_cycle, "_supervisor"):
         run_autonomous_cycle._supervisor = PortfolioSupervisor(config)
+        run_autonomous_cycle._improver = ContinuousImprovement(config)
     supervisor = run_autonomous_cycle._supervisor
+    improver = run_autonomous_cycle._improver
     
     print(f"\n{'='*60}")
     print(f"  🚀 CICLO AUTÓNOMO — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -352,6 +355,21 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
             if summary.get("adjustments"):
                 for adj in summary["adjustments"][-3:]:
                     print(f"   🔧 {adj}")
+
+    # ─── MEJORA CONTINUA ────────────────────────────────────────────────
+    cycle_data = {
+        "failed_symbols": dict(_perf_monitor.failed_symbols) if _perf_monitor else {},
+        "candidates": candidates if 'candidates' in dir() else [],
+        "total_trades": len(_perf_monitor.trades) if _perf_monitor else 0,
+        "active_roles": ["quant_strategist", "technical_scout", "sentiment_tracker",
+                         "risk_manager", "portfolio_supervisor", "execution_trader"],
+        "regime_stats": {},
+    }
+    recs = improver.analyze_cycle(cycle_data)
+    if recs:
+        print(f"\n🔍 Mejora continua — {len(recs)} recomendaciones:")
+        for r in recs[:3]:
+            print(f"   [{r['severidad'].upper()}] {r['mensaje']}")
 
     print(f"\n{'='*60}")
     print(f"  ✅ CICLO COMPLETADO")
