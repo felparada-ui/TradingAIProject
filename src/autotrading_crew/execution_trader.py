@@ -475,6 +475,11 @@ class MT5Executor:
             logger.warning(f"No se pudo obtener tick para {mt5_symbol}")
             return {"ok": False, "spread": 999, "error": f"Sin datos de mercado para {mt5_symbol}"}
 
+        # Verificar que bid/ask son válidos (> 0)
+        if tick.bid <= 0 or tick.ask <= 0:
+            logger.warning(f"Bid/Ask inválido para {mt5_symbol}: bid={tick.bid}, ask={tick.ask}")
+            return {"ok": False, "spread": 999, "error": f"Sin precio real para {mt5_symbol}"}
+
         spread = (tick.ask - tick.bid) / info.point if info.point > 0 else (tick.ask - tick.bid) * 10000
         self._last_tick = {"ask": tick.ask, "bid": tick.bid, "spread": spread, "symbol": mt5_symbol}
 
@@ -483,10 +488,6 @@ class MT5Executor:
             return {"ok": False, "spread": round(spread, 1), "symbol": mt5_symbol}
 
         return {"ok": True, "spread": round(spread, 1), "symbol": mt5_symbol}
-        self._last_tick = {"ask": tick.ask, "bid": tick.bid, "spread": spread}
-
-        if spread > self.max_spread:
-            return {"ok": False, "spread": round(spread, 1), "symbol": symbol}
 
         return {"ok": True, "spread": round(spread, 1), "symbol": symbol}
 

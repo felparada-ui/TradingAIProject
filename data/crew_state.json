@@ -1,7 +1,7 @@
 {
   "trades": [],
   "failed_symbols": {
-    "XRP/USD": 1
+    "XRP/USD": 2
   },
   "adjustments": [],
   "strategy_stats": {},
