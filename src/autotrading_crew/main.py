@@ -40,6 +40,7 @@ from src.autotrading_crew.regime_detector import RegimeDetector
 from src.autotrading_crew.performance_monitor import PerformanceMonitor
 from src.autotrading_crew.portfolio_supervisor import PortfolioSupervisor
 from src.autotrading_crew.continuous_improvement import ContinuousImprovement
+from src.autotrading_crew.master_trader import MasterTrader
 
 # Telegram (opcional — no rompe si no está configurado)
 try:
@@ -102,12 +103,22 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     if not hasattr(run_autonomous_cycle, "_supervisor"):
         run_autonomous_cycle._supervisor = PortfolioSupervisor(config)
         run_autonomous_cycle._improver = ContinuousImprovement(config)
+        run_autonomous_cycle._master = MasterTrader(config)
     supervisor = run_autonomous_cycle._supervisor
     improver = run_autonomous_cycle._improver
+    master = run_autonomous_cycle._master
     
     print(f"\n{'='*60}")
     print(f"  🚀 CICLO AUTÓNOMO — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}")
+    
+    # ─── FASE 0: MASTER TRADER — Contexto global ───────────────────────────
+    print("\n🧠 [FASE 0] Master Trader — Evaluando contexto del mercado...")
+    context = master.assess_market_context()
+    print(f"   Humor del mercado: {context['market_mood'].upper()}")
+    for w in context.get("warnings", []):
+        print(f"   ⚠️  {w}")
+    print(f"   📖 Sabiduria: {master.get_market_wisdom()}")
 
     # ─── FASE 1: BARRIDO ───────────────────────────────────────────────────
     print("\n📡 [FASE 1] Quant Strategist — Escaneando mercado...")
@@ -297,6 +308,25 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
             print(f"   💡 Sugerencia: cerrar {ex['symbol']} {ex['side']} — {ex['reason']}")
         return
 
+    # ─── FASE 4.5: MASTER TRADER — Decisión Final ─────────────────────────
+    print(f"\n🧠 [FASE 4.5] Master Trader — Resolviendo...")
+    daily_stats = {"consecutive_losses": 0}  # Se puede obtener de _perf_monitor
+    final = master.final_decision(
+        proposal=proposal,
+        risk_result=validation,
+        supervisor_result=sv_result,
+        context=context,
+        daily_stats=daily_stats,
+    )
+    print(f"   Decisión final: {final['decision']}")
+    for r in final.get("reasons", []):
+        print(f"      {r}")
+    if final.get("size_adjustment", 1.0) < 1.0:
+        print(f"   📏 Ajuste de tamaño por contexto: x{final['size_adjustment']}")
+
+    if final.get("decision") == "VETO":
+        return
+
     # ─── FASE 4: EJECUCIÓN ─────────────────────────────────────────────────
     print(f"\n⚡ [FASE 4] Execution Trader — Ejecutando orden...")
 
@@ -370,6 +400,10 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
         print(f"\n🔍 Mejora continua — {len(recs)} recomendaciones:")
         for r in recs[:3]:
             print(f"   [{r['severidad'].upper()}] {r['mensaje']}")
+
+    # ─── Sabiduría del Master Trader ────────────────────────────────────
+    wisdom = master.get_market_wisdom()
+    print(f"\n📖 {wisdom}")
 
     print(f"\n{'='*60}")
     print(f"  ✅ CICLO COMPLETADO")
