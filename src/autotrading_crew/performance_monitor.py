@@ -89,12 +89,12 @@ class PerformanceMonitor:
     def get_excluded_symbols(self) -> set:
         """
         Retorna símbolos que deben ser excluidos del escaneo:
-        - 3+ fallos consecutivos de ejecución
+        - 5+ fallos consecutivos de ejecución
         - 5+ trades perdidos consecutivos
         """
         excluded = set()
         for symbol, fails in self.failed_symbols.items():
-            if fails >= 3:
+            if fails >= 5:
                 excluded.add(symbol)
                 logger.info(f"[EXCLUIDO] {symbol} por {fails} fallos de ejecucion")
 
