@@ -96,12 +96,12 @@ class PerformanceMonitor:
         for symbol, fails in self.failed_symbols.items():
             if fails >= 3:
                 excluded.add(symbol)
-                logger.info(f"⛔ Excluyendo {symbol} por {fails} fallos de ejecución")
+                logger.info(f"[EXCLUIDO] {symbol} por {fails} fallos de ejecucion")
 
         for symbol, stats in self.symbol_stats.items():
             if stats["consecutive_fails"] >= 5:
                 excluded.add(symbol)
-                logger.info(f"⛔ Excluyendo {symbol} por {stats['consecutive_fails']} pérdidas consecutivas")
+                logger.info(f"[EXCLUIDO] {symbol} por {stats['consecutive_fails']} perdidas consecutivas")
 
         return excluded
 
