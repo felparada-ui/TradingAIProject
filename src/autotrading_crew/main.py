@@ -333,7 +333,7 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     # Verificar que no haya posición abierta en el mismo símbolo en MT5
     try:
         import MetaTrader5 as mt5_check
-        mt5_sym_check = _executor._normalize_symbol(best_candidate["symbol"]) if hasattr(_executor, '_normalize_symbol') else best_candidate["symbol"]
+        mt5_sym_check = crew_tools._executor._normalize_symbol(best_candidate["symbol"]) if (hasattr(crew_tools, '_executor') and crew_tools._executor) else best_candidate["symbol"]
         mt5_check.symbol_select(mt5_sym_check, True)
         existing_positions = mt5_check.positions_get(symbol=mt5_sym_check)
         if existing_positions and len(existing_positions) > 0:
