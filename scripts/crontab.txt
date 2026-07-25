@@ -1,0 +1,15 @@
+# PRO TRADER — Tareas Programadas (cron)
+# Lunes a Viernes: Pipeline cada hora en sesion USA (13:30-20:00 UTC)
+30 13 * * 1-5 cd /workspaces/TradingAIProject && python src/pro_trader_crew/main.py >> logs/cron_pipeline.log 2>&1
+30 14 * * 1-5 cd /workspaces/TradingAIProject && python src/pro_trader_crew/main.py >> logs/cron_pipeline.log 2>&1
+30 15 * * 1-5 cd /workspaces/TradingAIProject && python src/pro_trader_crew/main.py >> logs/cron_pipeline.log 2>&1
+30 16 * * 1-5 cd /workspaces/TradingAIProject && python src/pro_trader_crew/main.py >> logs/cron_pipeline.log 2>&1
+30 17 * * 1-5 cd /workspaces/TradingAIProject && python src/pro_trader_crew/main.py >> logs/cron_pipeline.log 2>&1
+30 18 * * 1-5 cd /workspaces/TradingAIProject && python src/pro_trader_crew/main.py >> logs/cron_pipeline.log 2>&1
+30 19 * * 1-5 cd /workspaces/TradingAIProject && python src/pro_trader_crew/main.py >> logs/cron_pipeline.log 2>&1
+
+# Health check cada 6 horas
+0 */6 * * * cd /workspaces/TradingAIProject && python src/pro_trader_crew/main.py >> logs/cron_health.log 2>&1
+
+# Lunes recordatorio
+25 13 * * 1 cd /workspaces/TradingAIProject && python -c "from notifications import _send_message; _send_message('📆 LUNES - MERCADO ABIERTO\n\nPipeline PRO TRADER activo.\nSPY+IWM+ORB operando.\nTelegram notificando.')" >> logs/cron_monday.log 2>&1
