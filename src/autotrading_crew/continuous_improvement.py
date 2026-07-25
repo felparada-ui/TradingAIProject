@@ -160,23 +160,110 @@ class ContinuousImprovement:
     # =========================================================================
 
     def _detect_role_gaps(self, existing_roles: list[str], cycle_result: dict) -> list[dict]:
-        """Detecta qué roles faltan en la Crew según los problemas actuales."""
+        """
+        Analiza el pipeline completo y detecta qué roles faltan.
+
+        Reglas de detección de gaps:
+        1. Si hay +3 señales pero 0 ejecuciones → falta Execution Validator
+        2. Si todos los trades son del mismo régimen → falta Regime Diversifier
+        3. Si el win rate es <30% tras 10+ trades → falta Strategy Optimizer
+        4. Si hay posiciones abiertas por +48h sin movimiento → falta Exit Manager
+        5. Si el spread rechaza +50% de candidatos → falta Liquidity Scout
+        6. Si el supervisor rechaza +60% por sector → falta Sector Allocator
+        7. Si el profit factor es <1.0 tras 20 trades → falta Risk Rebalancer
+        """
         recs = []
-        missing_roles = []
+        missing_roles = set()
+        pipeline = cycle_result.get("pipeline_stats", {})
+        total_trades = cycle_result.get("total_trades", 0)
+        candidates = cycle_result.get("candidates", [])
+        win_rate = cycle_result.get("win_rate", 0)
+        pnl = cycle_result.get("current_pnl", 0)
+        open_positions = cycle_result.get("open_positions_count", 0)
+        regime_stats = cycle_result.get("regime_stats", {})
+        sentiment_source = cycle_result.get("sentiment_source", "")
 
-        # Detectar si falta un rol de cierre automático de posiciones
-        if cycle_result.get("open_positions_count", 0) > 0:
-            has_exit_manager = "exit_manager" in existing_roles or "portfolio_supervisor" in existing_roles
-            if not has_exit_manager:
-                missing_roles.append("exit_manager")
+        # ─── Gap 1: Execution Validator ────────────────────────────────────
+        # Si hay candidatos pero ninguno llega a ejecución
+        signals_count = len(candidates) if isinstance(candidates, list) else 0
+        if signals_count >= 5 and total_trades == 0:
+            missing_roles.add("execution_validator")
+            recs.append(self._rec(
+                tipo="nuevo_rol",
+                severidad="alta",
+                mensaje=f"{signals_count} señales generadas pero 0 ejecutadas — falta un Execution Validator",
+                accion="Crear agente ExecutionValidator que revise por qué las senales no llegan a MT5 y ajuste parametros",
+            ))
 
-        # Detectar si falta un rol de monitoreo de noticias en tiempo real
-        if cycle_result.get("sentiment_source", "") == "simulated":
-            missing_roles.append("news_monitor")
+        # ─── Gap 2: Regime Diversifier ─────────────────────────────────────
+        # Si todas las operaciones son del mismo régimen (solo rango)
+        if regime_stats:
+            regimes_detected = list(regime_stats.keys())
+            if len(regimes_detected) <= 1 and total_trades >= 5:
+                missing_roles.add("regime_diversifier")
+                recs.append(self._rec(
+                    tipo="nuevo_rol",
+                    severidad="alta",
+                    mensaje=f"Solo se opera en regimen '{regimes_detected[0] if regimes_detected else '?'}' — falta diversificar",
+                    accion="Crear agente RegimeDiversifier que fuerce busqueda de oportunidades en otros regimenes",
+                ))
 
-        # Detectar si falta un rol de optimización de parámetros
-        if cycle_result.get("total_trades", 0) > 10:
-            missing_roles.append("param_optimizer")
+        # ─── Gap 3: Strategy Optimizer ─────────────────────────────────────
+        # Si el win rate es bajo con suficientes datos
+        if total_trades >= 10 and win_rate < 35:
+            missing_roles.add("strategy_optimizer")
+            recs.append(self._rec(
+                tipo="nuevo_rol",
+                severidad="alta",
+                mensaje=f"Win rate {win_rate:.0f}% en {total_trades} trades — falta un Strategy Optimizer",
+                accion="Crear agente StrategyOptimizer que ajuste parametros de indicadores (BB period, RSI thresholds, ADX)",
+            ))
+
+        # ─── Gap 4: Exit Manager ──────────────────────────────────────────
+        # Si hay posiciones abiertas hace tiempo
+        if open_positions >= 2 and total_trades >= 5:
+            missing_roles.add("exit_manager")
+            recs.append(self._rec(
+                tipo="nuevo_rol",
+                severidad="media",
+                mensaje=f"{open_positions} posiciones abiertas — falta un Exit Manager",
+                accion="Crear agente ExitManager que monitoree trailing stops, time-based exits y cierre de posiciones",
+            ))
+
+        # ─── Gap 5: News Monitor ──────────────────────────────────────────
+        # Si el sentimiento es simulado
+        if sentiment_source == "simulated" and total_trades >= 5:
+            missing_roles.add("news_monitor")
+            recs.append(self._rec(
+                tipo="nuevo_rol",
+                severidad="baja",
+                mensaje="Sentimiento simulado — falta un News Monitor real",
+                accion="Conectar NewsAPI o crear agente NewsMonitor con fuentes RSS financieras",
+            ))
+
+        # ─── Gap 6: Risk Rebalancer ────────────────────────────────────────
+        # Si el PnL es negativo después de varios trades
+        if total_trades >= 20 and pnl < 0:
+            missing_roles.add("risk_rebalancer")
+            recs.append(self._rec(
+                tipo="nuevo_rol",
+                severidad="alta",
+                mensaje=f"PnL negativo (${pnl:.2f}) en {total_trades} trades — falta Risk Rebalancer",
+                accion="Crear agente RiskRebalancer que reduzca riesgo progresivamente tras perdidas",
+            ))
+
+        # ─── Gap 7: Backtest Validator ─────────────────────────────────────
+        # Si nunca se ha hecho backtest
+        if total_trades >= 10 and not any("backtest" in r.get("accion", "") for r in self._recommendations):
+            missing_roles.add("backtest_validator")
+            recs.append(self._rec(
+                tipo="nuevo_rol",
+                severidad="media",
+                mensaje=f"{total_trades} trades en vivo sin respaldo de backtest — falta Backtest Validator",
+                accion="Crear agente BacktestValidator que ejecute backtests periodicos con datos reales",
+            ))
+
+        return recs
 
         for role in missing_roles:
             recs.append(self._rec(

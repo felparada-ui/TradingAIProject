@@ -387,13 +387,30 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
                     print(f"   🔧 {adj}")
 
     # ─── MEJORA CONTINUA ────────────────────────────────────────────────
+    # Recolectar estadísticas del pipeline para análisis
+    pipeline_stats = {
+        "approved": 0,
+        "rejected_spread": 0,  # Se calculará con data del supervisor
+        "rejected_rr": 0,
+        "rejected_supervisor": 0,
+        "rejected_master": 0,
+    }
+    if hasattr(supervisor, '_last_decision_log') and supervisor._last_decision_log:
+        pipeline_stats["supervisor_decisions"] = len(supervisor._last_decision_log)
+    
     cycle_data = {
         "failed_symbols": dict(_perf_monitor.failed_symbols) if _perf_monitor else {},
         "candidates": candidates,
         "total_trades": len(_perf_monitor.trades) if _perf_monitor else 0,
         "active_roles": ["quant_strategist", "technical_scout", "sentiment_tracker",
-                         "risk_manager", "portfolio_supervisor", "execution_trader"],
-        "regime_stats": {},
+                         "risk_manager", "portfolio_supervisor", "execution_trader",
+                         "master_trader", "continuous_improvement"],
+        "regime_stats": summary.get("by_strategy", {}) if _perf_monitor and summary.get("by_strategy") else {},
+        "current_pnl": summary.get("total_pnl", 0) if _perf_monitor else 0,
+        "win_rate": summary.get("win_rate", 0) if _perf_monitor else 0,
+        "pipeline_stats": pipeline_stats,
+        "open_positions_count": len(open_positions) if 'open_positions' in dir() else 0,
+        "sentiment_source": "simulated",  # Se puede refinar después
     }
     recs = improver.analyze_cycle(cycle_data)
     if recs:
