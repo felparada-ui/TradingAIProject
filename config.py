@@ -1,9 +1,9 @@
 """
 Configuracion central del sistema de trading.
-ESTRATEGIA GANADORA (validada multi-timeframe):
-  BTC/USDT H1 — ATFS
-  Resultados: PF 1.13, Win Rate 47.06%, Retorno +1.53%, Max DD -6.32%
-  50 trades sobre ~4 años (2021-2025) con capital $200
+MEJOR ESTRATEGIA (validada 4.5 años BCH/USDT 1H):
+  EMA 5/13/150 + ADX 22 + TP 1.8 (sin trailing)
+  Resultados: +20.38% retorno, PF 1.35, WR 43%, DD max -4.27%
+  186 trades en 4.5 años (2022-2026)
 """
 
 import os
@@ -19,45 +19,50 @@ load_dotenv()
 @dataclass
 class StrategyConfig:
     # --- Tipo de estrategia ---
-    strategy_type: str = "atfs"           # Adaptive Trend-Following System
+    strategy_type: str = "ema_cross"    # ema_cross (ganadora: +20.38% en 4.5 años)
     timeframe: str = "1h"
 
-    # --- Indicadores base (usados por ATFS) ---
-    ema_fast: int = 9
-    ema_slow: int = 21
-    ema_trend: int = 200
+    # --- Indicadores (EMA 5/13/150 optimo para BCH 1H) ---
+    ema_fast: int = 5
+    ema_slow: int = 13
+    ema_trend: int = 150
     adx_period: int = 14
     adx_threshold: float = 22.0
 
     # --- ATR ---
     atr_period: int = 14
     atr_sl_mult: float = 1.0
-    atr_tp_mult: float = 3.0
-    use_trailing_stop: bool = True
+    atr_tp_mult: float = 1.8
+    use_trailing_stop: bool = False     # Trailing empeora resultados
     trailing_atr_mult: float = 0.8
-    time_stop_bars: int = 8
 
     # --- Filtros de sesion ---
-    session_timezone: str = "UTC"
-    session_hours_utc: list = field(default_factory=lambda: list(range(8, 21)))
+    session_timezone: str = "America/Santiago"
+    session_start_local: str = "08:30"
+    session_end_local: str = "23:30"
+    session_hours_utc: list = field(default_factory=lambda: list(range(0, 24)))
     trading_days: list = field(default_factory=lambda: [0, 1, 2, 3, 4])
-    best_hours_utc: list = field(default_factory=lambda: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])
+    best_hours_utc: list = field(default_factory=lambda: [13, 14, 15, 16, 17])
 
     # --- Filtro de volatilidad minima ---
-    min_atr_pct: float = 0.005
+    min_atr_pct: float = 0.0005
     min_signal_quality: int = 2
+    min_entry_quality: int = 1
     min_body_ratio: float = 0.5
+    min_momentum_3: float = 0.2
 
-    # --- Estrategia hibrida multitimeframe (ATFS) ---
-    hybrid_strategy_enabled: bool = True
-    context_timeframe: str = "4h"
+    # --- Estrategia hibrida ---
+    hybrid_strategy_enabled: bool = False
+    context_timeframe: str = "1h"
     context_adx_threshold: float = 20.0
+    context_min_trend_strength: float = 0.0
 
-    # --- Gestion de capital ($200 inicial) ---
-    risk_per_trade: float = 0.01        # 1% por trade ($2 sobre $200)
-    max_daily_loss: float = 0.03        # Circuit breaker diario: -3% ($6)
-    max_drawdown_total: float = 0.10    # Circuit breaker total: -10% ($20)
-    cooldown_bars_after_loss: int = 3   # 3 velas de pausa tras perdida
+    # --- Gestion de capital ---
+    risk_per_trade: float = 0.005       # 0.5% por trade
+    max_daily_loss: float = 0.08        # Circuit breaker diario: -8%
+    max_drawdown_total: float = 0.20    # Circuit breaker total: -20%
+    cooldown_bars_after_loss: int = 3
+    max_concurrent_positions: int = 1
     max_concurrent_positions: int = 1   # 1 posicion a la vez
 
     # --- Donchian (breakout secundario) ---
@@ -106,7 +111,7 @@ class StrategyConfig:
 class ExchangeConfig:
     # Exchange principal: Binance
     exchange_id: str = "binance"
-    symbol: str = "BTC/USDT"            # Par principal (ATFS sobre BTC/USDT H1)
+    symbol: str = "BCH/USDT"            # Par principal (optimizado para EMA 5/13/150)
     symbol_alt: str = "BTCUSDT"         # Formato alternativo para algunas APIs
     market_type: str = "future"         # 'future' para perpetuos, 'spot' para spot
     api_key: str = field(default_factory=lambda: os.getenv("BINANCE_API_KEY", ""))

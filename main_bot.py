@@ -45,7 +45,7 @@ def run_backtest_mode(csv_path: str, capital: float, date_from: str, date_to: st
     from backtest import run_backtest_from_csv, plot_equity_curve
 
     print("\n" + "=" * 58)
-    print("  BACKTEST  |  BTC/USDT H1  |  ATFS")
+    print("  BACKTEST  |  BCH/USDT 1H  |  EMA 5/13/150")
     print("=" * 58)
 
     if not Path(csv_path).exists():
@@ -104,7 +104,7 @@ def run_paper_mode(capital: float, csv_warmup: str = None):
     from config import STRATEGY
     from live_engine import LiveEngine
     print("\n" + "=" * 58)
-    print(f"  PAPER TRADING  |  ATFS  |  BTC/USDT H1  |  SIN DINERO REAL")
+    print(f"  PAPER TRADING  |  EMA 5/13/150  |  BCH/USDT 1H  |  SIN DINERO REAL")
     print(f"  Capital inicial: ${capital:.2f} USD")
     print("=" * 58)
     engine = LiveEngine(initial_capital=capital, mode="PAPER", csv_warmup_path=csv_warmup)
@@ -115,7 +115,7 @@ def run_live_mode(capital: float, csv_warmup: str = None):
     from config import EXCHANGE, STRATEGY
     from live_engine import LiveEngine
     print("\n" + "=" * 58)
-    print(f"  TRADING EN VIVO  |  ATFS  |  BTC/USDT H1")
+    print(f"  TRADING EN VIVO  |  EMA 5/13/150  |  BCH/USDT 1H")
     print(f"  Capital: ${capital:.2f} | Exchange: Binance {'TESTNET' if EXCHANGE.sandbox else 'REAL'}")
     print("=" * 58)
     if not EXCHANGE.sandbox:

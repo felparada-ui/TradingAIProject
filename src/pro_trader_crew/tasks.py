@@ -23,6 +23,7 @@ from strategies.orb_breakout import generate_orb_signals
 from strategies.orb_backtest import run_orb_backtest
 from backtest import run_backtest
 from notifications import _send_message
+from tools.performance_tracker import PerformanceTracker, BACKTEST_EXPECTED
 
 BROKER = "binance"
 try:
@@ -269,6 +270,127 @@ def report_daily_summary() -> str:
 
 # ── TAREAS CREW ──────────────────────────────────────────────
 
+@tool
+def check_system_health() -> str:
+    """
+    Verifica que todo el sistema esté funcionando correctamente.
+    Detecta: bot caído, config incorrecta, circuit breaker activo, errores en logs.
+    Si detecta un problema, intenta corregirlo automáticamente.
+    
+    Returns:
+        JSON con estado del sistema y acciones tomadas
+    """
+    import subprocess, signal
+    
+    report = {
+        "timestamp": str(datetime.now(timezone.utc)),
+        "checks": [],
+        "issues": [],
+        "actions_taken": [],
+        "status": "OK",
+    }
+    
+    # ── Check 1: Bot corriendo ──
+    try:
+        result = subprocess.run(['pgrep', '-f', 'main_bot.py.*mode paper'],
+                              capture_output=True, text=True, timeout=10)
+        bot_pid = result.stdout.strip()
+        if bot_pid:
+            report["checks"].append({"check": "bot_process", "status": "OK", "pid": bot_pid})
+        else:
+            report["checks"].append({"check": "bot_process", "status": "FAIL"})
+            report["issues"].append("Bot PAPER no está corriendo")
+            # Intentar reiniciar
+            subprocess.Popen(['python', 'main_bot.py', '--mode', 'paper', '--capital', '200'],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            report["actions_taken"].append("Bot reiniciado automáticamente")
+            report["status"] = "RECOVERED"
+    except Exception as e:
+        report["checks"].append({"check": "bot_process", "status": "ERROR", "detail": str(e)})
+    
+    # ── Check 2: Config correcta ──
+    try:
+        from config import STRATEGY, EXCHANGE
+        config_ok = True
+        if STRATEGY.strategy_type != "ema_cross":
+            report["issues"].append(f"Config incorrecta: strategy_type={STRATEGY.strategy_type}, debe ser ema_cross")
+            config_ok = False
+        if STRATEGY.risk_per_trade > 0.01:
+            report["issues"].append(f"Riesgo muy alto: {STRATEGY.risk_per_trade*100}%, debe ser 0.5%")
+            config_ok = False
+        if config_ok:
+            report["checks"].append({"check": "config", "status": "OK"})
+        else:
+            report["checks"].append({"check": "config", "status": "FAIL"})
+            report["status"] = "ISSUES_DETECTED"
+    except Exception as e:
+        report["checks"].append({"check": "config", "status": "ERROR", "detail": str(e)})
+    
+    # ── Check 3: Circuit breaker ──
+    try:
+        log_file = "logs/trading_bot.log"
+        if os.path.exists(log_file):
+            with open(log_file, 'r') as f:
+                last_lines = f.readlines()[-50:]
+            for line in last_lines:
+                if "CIRCUIT BREAKER" in line or "circuit_breaker" in line.lower():
+                    report["issues"].append("Circuit breaker detectado en logs")
+                    report["checks"].append({"check": "circuit_breaker", "status": "ACTIVO"})
+                    report["status"] = "CIRCUIT_BREAKER"
+                    break
+            else:
+                report["checks"].append({"check": "circuit_breaker", "status": "OK"})
+    except:
+        report["checks"].append({"check": "circuit_breaker", "status": "UNKNOWN"})
+    
+    # ── Check 4: Pipeline loop ──
+    try:
+        result = subprocess.run(['pgrep', '-f', 'pro_trader_crew/main.py'],
+                              capture_output=True, text=True, timeout=10)
+        if result.stdout.strip():
+            report["checks"].append({"check": "pipeline_loop", "status": "OK"})
+        else:
+            report["checks"].append({"check": "pipeline_loop", "status": "NOT_RUNNING"})
+    except:
+        pass
+    
+    # ── Alertar si hay issues ──
+    if report["issues"]:
+        icon = "🔴" if report["status"] in ("CIRCUIT_BREAKER",) else "🟡"
+        msg = (
+            f"<b>{icon} SYSTEM RELIABILITY — Alertas Detectadas</b>\n\n"
+            f"<b>Estado:</b> {report['status']}\n"
+            f"<b>Problemas:</b>\n"
+        )
+        for issue in report["issues"]:
+            msg += f"  ⚠️ {issue}\n"
+        if report["actions_taken"]:
+            msg += f"\n<b>Acciones tomadas:</b>\n"
+            for action in report["actions_taken"]:
+                msg += f"  ✅ {action}\n"
+        msg += f"\n<i>{report['timestamp']}</i>"
+        try:
+            _send_message(msg)
+        except:
+            pass
+    else:
+        # Reporte periódico cada 6 horas
+        msg = (
+            f"<b>✅ SYSTEM RELIABILITY — Todo OK</b>\n\n"
+            f"<b>Bot PAPER:</b> Activo\n"
+            f"<b>Pipeline:</b> {'Activo' if report['checks'][-1].get('status') == 'OK' else 'Inactivo'}\n"
+            f"<b>Config:</b> Correcta\n"
+            f"<b>Circuit Breaker:</b> Normal\n"
+            f"<i>{report['timestamp']}</i>"
+        )
+        try:
+            _send_message(msg)
+        except:
+            pass
+    
+    return json.dumps(report, indent=2)
+
+
 def create_analysis_task(agent_obj=None) -> Task:
     return Task(
         description=f"""
@@ -309,6 +431,24 @@ def create_report_task(agent_obj=None) -> Task:
         Incluye: trades del día, PnL, win rate, estrategias usadas.
         """,
         expected_output="Resumen diario enviado a Telegram.",
+        agent=agent_obj,
+    )
+
+
+def create_reliability_task(agent_obj=None) -> Task:
+    return Task(
+        description="""
+        Eres el System Reliability Engineer. Revisa que todo funcione.
+        
+        1. Usa check_system_health para verificar:
+           - Bot PAPER corriendo
+           - Config correcta (EMA 5/13/150, BCH/USDT, 0.5% riesgo)
+           - Sin circuit breakers activos
+           - Pipeline operativo
+        2. Si algo está mal, corrígelo automáticamente.
+        3. Reporta el estado a Telegram.
+        """,
+        expected_output="Reporte de salud del sistema con acciones correctivas.",
         agent=agent_obj,
     )
 

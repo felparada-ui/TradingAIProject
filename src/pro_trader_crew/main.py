@@ -18,9 +18,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 from src.pro_trader_crew.tasks import (
     scan_spy_trend, scan_iwm_trend, scan_spy_orb,
-    execute_index_trade, report_daily_summary,
+    execute_index_trade, report_daily_summary, check_system_health,
     create_analysis_task, create_execution_task, create_report_task,
-    BROKER,
+    create_reliability_task, BROKER,
 )
 from notifications import _send_message
 
@@ -39,6 +39,8 @@ def load_agents():
             agent_tools = [execute_index_trade]
         elif name == "performance_analyst":
             agent_tools = [report_daily_summary]
+        elif name == "system_reliability":
+            agent_tools = [check_system_health]
 
         agents[name] = Agent(
             role=cfg["role"], goal=cfg["goal"], backstory=cfg["backstory"],
@@ -82,13 +84,25 @@ def run_pipeline():
         else:
             print(f"  ⏳ {name}: Sin señal")
 
-    # 3. Enviar resumen diario
+    # 4. Verificar salud del sistema
+    print("\n🔧 Verificando salud del sistema...")
+    health = {"status": "UNKNOWN", "issues": []}
+    try:
+        health = json.loads(check_system_health.run())
+        print(f"  Estado: {health.get('status', '?')}")
+        print(f"  Issues: {len(health.get('issues', []))}")
+        for issue in health.get('issues', []):
+            print(f"    ⚠️ {issue}")
+    except Exception as e:
+        print(f"  Error en health check: {e}")
+
+    # 5. Enviar resumen diario
     print("\n📊 Enviando resumen diario...")
     summary = json.loads(report_daily_summary.run())
     print(f"  Trades hoy: {summary.get('trades', 0)} | PnL: ${summary.get('pnl_usd', 0)}")
 
     print(f"\n{'='*60}")
-    print(f"  ✅ Pipeline completado — {executed} operaciones ejecutadas")
+    print(f"  ✅ Pipeline completado — {executed} operaciones | Sistema: {health.get('status','OK')}")
     print(f"{'='*60}")
 
 
