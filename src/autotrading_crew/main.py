@@ -418,6 +418,23 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
             _perf_monitor.register_failed_execution(best_candidate["symbol"], error)
             print(f"   ❌ Orden rechazada: {error}")
 
+    # ─── MONITOREO DE POSICIONES ABIERTAS ──────────────────────────────────
+    try:
+        import MetaTrader5 as mt5_mon
+        active_positions = mt5_mon.positions_get()
+        if active_positions and len(active_positions) > 0:
+            total_pnl = sum(p.profit + (p.swap or 0) for p in active_positions)
+            print(f"\n📊 Posiciones activas: {len(active_positions)} | PnL: ${total_pnl:.2f}")
+            for p in active_positions[:5]:
+                side = "BUY" if p.type == 0 else "SELL"
+                print(f"   {p.symbol:10s} {side:5s} Vol:{p.volume:.2f} "
+                      f"Entry:${p.price_open:.2f} SL:{p.sl:.2f} TP:{p.tp:.2f} "
+                      f"PnL:${p.profit:.2f}")
+        else:
+            print(f"\n📊 Sin posiciones abiertas — vigilando mercado...")
+    except Exception:
+        pass
+
     # ─── Reporte de rendimiento ─────────────────────────────────────────────
     if _perf_monitor:
         summary = _perf_monitor.get_summary()
@@ -463,6 +480,17 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     # ─── Sabiduría del Master Trader ────────────────────────────────────
     wisdom = master.get_market_wisdom()
     print(f"\n📖 {wisdom}")
+
+    # Heartbeat: mostrar estado resumido
+    try:
+        import MetaTrader5 as mt5_hb
+        acc = mt5_hb.account_info()
+        if acc:
+            print(f"\n💓 Heartbeat — Balance: ${acc.balance:.2f} | "
+                  f"Equity: ${acc.equity:.2f} | "
+                  f"Margen libre: ${acc.margin_free:.2f}")
+    except Exception:
+        pass
 
     print(f"\n{'='*60}")
     print(f"  ✅ CICLO COMPLETADO")
