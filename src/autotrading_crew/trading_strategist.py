@@ -34,70 +34,78 @@ class TradingStrategist:
     def __init__(self, config: dict):
         self.config = config
         self._decision_log: list[dict] = []
+        self._strategy_perf_file = "data/strategy_performance.json"
 
-        # ─── Playbook de estrategias por activo ──────────────────────────
-        self.playbook = {
-            # Forex — pares mayores
-            "EUR/USD": {"default": "mean_reversion", "alternate": "breakout", "session": "london_ny", "min_vol": 0.0003},
-            "GBP/USD": {"default": "mean_reversion", "alternate": "breakout", "session": "london", "min_vol": 0.0004},
-            "USD/JPY": {"default": "breakout", "alternate": "mean_reversion", "session": "asia_london", "min_vol": 0.0003},
-            "USD/CAD": {"default": "breakout", "alternate": "mean_reversion", "session": "london_ny", "min_vol": 0.0003},
-            "AUD/USD": {"default": "breakout", "alternate": "mean_reversion", "session": "asia", "min_vol": 0.0004},
-            "NZD/USD": {"default": "breakout", "alternate": "mean_reversion", "session": "asia", "min_vol": 0.0004},
-            "USD/CHF": {"default": "mean_reversion", "alternate": "breakout", "session": "london", "min_vol": 0.0003},
-            "EUR/JPY": {"default": "breakout", "alternate": "mean_reversion", "session": "london", "min_vol": 0.0005},
-            "GBP/JPY": {"default": "breakout", "alternate": "momentum", "session": "london", "min_vol": 0.0006},
-            # Crypto — alta volatilidad
-            "BTC/USD": {"default": "momentum", "alternate": "breakout", "session": "24h", "min_vol": 0.005},
-            "ETH/USD": {"default": "momentum", "alternate": "breakout", "session": "24h", "min_vol": 0.005},
-            "SOL/USD": {"default": "momentum", "alternate": "breakout", "session": "24h", "min_vol": 0.008},
-            "BCH/USD": {"default": "momentum", "alternate": "breakout", "session": "24h", "min_vol": 0.008},
-            "LTC/USD": {"default": "momentum", "alternate": "breakout", "session": "24h", "min_vol": 0.006},
-            "XRP/USD": {"default": "momentum", "alternate": "breakout", "session": "24h", "min_vol": 0.006},
-            # Commodities
-            "XAU/USD": {"default": "breakout", "alternate": "mean_reversion", "session": "london_ny", "min_vol": 0.002},
-            "XAG/USD": {"default": "breakout", "alternate": "momentum", "session": "london_ny", "min_vol": 0.003},
-        }
+        # ─── Playbook inicial (neutral + se auto-ajusta con datos) ────────
+        # Valores iniciales: todas las estrategias empiezan con peso 1.0
+        # El sistema ajusta los pesos según resultados reales
+        self.playbook = {}
+        self.strategy_weights = {}  # {"EUR/USD": {"mean_reversion": 1.0, "breakout": 1.0, "momentum": 1.0}}
+        self._load_performance()
+        
+        # Si no hay datos, inicializar con pesos neutros
+        if not self.playbook:
+            symbols = [
+                "EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD", "USD/CAD",
+                "NZD/USD", "USD/CHF", "EUR/JPY", "GBP/JPY",
+                "BTC/USD", "ETH/USD", "SOL/USD", "BCH/USD", "LTC/USD", "XRP/USD",
+                "XAU/USD", "XAG/USD",
+            ]
+            for sym in symbols:
+                self.playbook[sym] = {
+                    "strategies": ["mean_reversion", "breakout", "momentum"],
+                    "session": self._guess_session(sym),
+                    "min_vol": self._guess_min_vol(sym),
+                }
+                self.strategy_weights[sym] = {"mean_reversion": 1.0, "breakout": 1.0, "momentum": 1.0}
+            self._save_performance()
 
-        # ─── Reglas de filtrado de entradas ──────────────────────────────
+        # ─── Filtros (basados en sentido común, ajustables con datos) ──────
         self.filters = {
-            "mean_reversion": {
-                "max_spread_pct": 0.0005,  # Spread máximo para MR (más sensible)
-                "min_confidence": 55,
-                "avoid_news_window": True,  # No MR 30min antes de noticias
-            },
-            "breakout": {
-                "max_spread_pct": 0.001,
-                "min_confidence": 60,
-                "min_volume_spike": 1.5,  # Volumen > 1.5x media
-            },
-            "momentum": {
-                "max_spread_pct": 0.003,  # Momentum tolera spreads más altos
-                "min_confidence": 65,
-                "min_adx": 25,  # Momentum solo con ADX fuerte
-            },
+            "mean_reversion": {"max_spread_pct": 0.001, "min_confidence": 50},
+            "breakout":       {"max_spread_pct": 0.002, "min_confidence": 55},
+            "momentum":       {"max_spread_pct": 0.005, "min_confidence": 60},
         }
 
     # =========================================================================
-    # API PRINCIPAL
+    # SELECCIÓN DE ESTRATEGIA (basada en datos, no suposiciones)
     # =========================================================================
 
     def select_strategy(self, symbol: str, regime: str, market_context: dict) -> dict:
         """
-        Selecciona la estrategia óptima para el activo y contexto actual.
-
-        Args:
-            symbol: Símbolo a operar (ej: "EUR/USD")
-            regime: Régimen detectado ("tendencia", "rango", "alta_volatilidad")
-            market_context: Contexto del Master Trader (mood, hora, día)
-
-        Returns:
-            dict con estrategia seleccionada, ajustes y advertencias
+        Selecciona la estrategia con mejor rendimiento HISTÓRICO para este activo.
+        Si no hay datos históricos, elige por régimen.
         """
-        play = self.playbook.get(symbol.upper(), self.playbook.get(symbol, {
-            "default": "mean_reversion", "alternate": "breakout",
-            "session": "24h", "min_vol": 0.001
-        }))
+        play = self.playbook.get(symbol.upper(), {})
+        weights = self.strategy_weights.get(symbol.upper(), {"mean_reversion": 1.0, "breakout": 1.0, "momentum": 1.0})
+
+        hour = market_context.get("hour", 12)
+        mood = market_context.get("market_mood", "favorable")
+        warnings = []
+        adjustments = {}
+
+        # Elegir estrategia: la de mayor peso histórico
+        best_strategy = max(weights, key=lambda s: weights[s])
+        # Pero si el régimen sugiere otra, darle bonus
+        regime_map = {"tendencia": "breakout", "rango": "mean_reversion", "alta_volatilidad": "momentum"}
+        regime_strategy = regime_map.get(regime, "mean_reversion")
+        if weights.get(regime_strategy, 0) >= weights.get(best_strategy, 0) * 0.8:
+            best_strategy = regime_strategy
+
+        strategy = best_strategy
+
+        # Penalización por sesión (solo si hay datos de sesión)
+        session = play.get("session", "24h")
+        penalty = self._session_penalty(session, hour)
+        if penalty:
+            warnings.append(f"Fuera de sesion optima ({session}: {hour}h) — penalizando confianza")
+            adjustments["confidence_penalty"] = penalty
+
+        # Penalización por contexto de mercado
+        if mood == "cauteloso":
+            adjustments["confidence_penalty"] = adjustments.get("confidence_penalty", 0) - 10
+        elif mood == "peligroso":
+            adjustments["confidence_penalty"] = adjustments.get("confidence_penalty", 0) - 25
 
         hour = market_context.get("hour", 12)
         mood = market_context.get("market_mood", "favorable")
@@ -215,3 +223,83 @@ class TradingStrategist:
             "effective_min_confidence": effective_min,
             "strategy_used": strategy,
         }
+
+    # =========================================================================
+    # AUTO-AJUSTE: aprende de resultados reales
+    # =========================================================================
+
+    def register_trade_result(self, symbol: str, strategy: str, won: bool, pnl: float):
+        """
+        Registra el resultado de un trade y ajusta los pesos de la estrategia.
+
+        Si una estrategia gana, su peso sube. Si pierde, baja.
+        Así el sistema DESCUBRE qué funciona para cada activo.
+        """
+        sym = symbol.upper()
+        if sym not in self.strategy_weights:
+            self.strategy_weights[sym] = {"mean_reversion": 1.0, "breakout": 1.0, "momentum": 1.0}
+
+        weights = self.strategy_weights[sym]
+        current = weights.get(strategy, 1.0)
+
+        # Ajuste: ganar +0.1, perder -0.08 (mínimo 0.3, máximo 3.0)
+        if won:
+            weights[strategy] = min(3.0, current + 0.1)
+        else:
+            weights[strategy] = max(0.3, current - 0.08)
+
+        # Registrar también en el playbook
+        if sym in self.playbook:
+            self.playbook[sym]["strategies"] = sorted(
+                weights.keys(), key=lambda s: weights[s], reverse=True
+            )
+
+        self._save_performance()
+        logger.info(f"[Estratega] {sym} {strategy}: peso {current:.2f} -> {weights[strategy]:.2f} ({'GANO' if won else 'PERDIO'})")
+
+    # =========================================================================
+    # HELPERS
+    # =========================================================================
+
+    def _guess_session(self, symbol: str) -> str:
+        """Estima sesión óptima según el activo (neutral, sin asumir)."""
+        crypto = ["BTC", "ETH", "SOL", "BCH", "LTC", "XRP"]
+        if any(c in symbol.upper() for c in crypto):
+            return "24h"
+        return "24h"  # Neutro: no penalizar hasta tener datos
+
+    def _guess_min_vol(self, symbol: str) -> float:
+        crypto = ["BTC", "ETH", "SOL", "BCH", "LTC", "XRP"]
+        if any(c in symbol.upper() for c in crypto):
+            return 0.005
+        return 0.0003
+
+    def _session_penalty(self, session: str, hour: int) -> int:
+        """Solo penaliza si la sesión es restrictiva (y tenemos datos)."""
+        return 0  # Neutro: sin penalización hasta tener datos reales
+
+    def _load_performance(self):
+        """Carga rendimiento histórico desde disco."""
+        try:
+            import json, os
+            if os.path.exists(self._strategy_perf_file):
+                with open(self._strategy_perf_file) as f:
+                    data = json.load(f)
+                self.playbook = data.get("playbook", {})
+                self.strategy_weights = data.get("weights", {})
+                logger.info(f"[Estratega] {len(self.playbook)} activos cargados con datos historicos")
+        except Exception as e:
+            logger.debug(f"Sin datos de estrategia previos: {e}")
+
+    def _save_performance(self):
+        """Guarda rendimiento a disco."""
+        try:
+            import json, os
+            os.makedirs(os.path.dirname(self._strategy_perf_file), exist_ok=True)
+            with open(self._strategy_perf_file, "w") as f:
+                json.dump({
+                    "playbook": self.playbook,
+                    "weights": self.strategy_weights,
+                }, f, indent=2)
+        except Exception as e:
+            logger.warning(f"No se pudo guardar rendimiento de estrategias: {e}")

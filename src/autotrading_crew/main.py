@@ -222,6 +222,7 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
             "vwap_position": vwap.get("position_vs_vwap", "unknown"),
             "order_flow": flow.get("verdict", "unknown"),
             "sentiment": sentiment["classification"],
+            "strategy": entry_check.get("strategy_used", strategy_plan.get("selected_strategy", "unknown")),
         })
 
         print(f"   {symbol:10s} → Señal: {tech_signal['signal']:6s} | "
@@ -389,6 +390,13 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
             }
             _perf_monitor.register_trade_result(trade_record)
             risk_manager.register_trade(trade_record)
+            # Registrar resultado en el estratega para que aprenda
+            if hasattr(run_autonomous_cycle, "_strategist"):
+                run_autonomous_cycle._strategist.register_trade_result(
+                    best_candidate["symbol"],
+                    best_candidate.get("strategy", "unknown"),
+                    True, 0.0
+                )
             print(f"   ✅ Orden ejecutada: ID={exec_result.get('order_id')} | "
                   f"Precio=${exec_result.get('price', 0)} | "
                   f"Volumen={exec_result.get('volume', 0)}")

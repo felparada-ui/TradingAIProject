@@ -152,7 +152,20 @@
       "take_profit": 63729.26764,
       "net_pnl_usd": 0.0,
       "rr_ratio": 0,
-      "timestamp": "2026-07-25T19:57:04.941027"
+      "timestamp": "2026-07-25T19:57:04.941027",
+      "_open_since": "2026-07-25 19:57:04.957678",
+      "_bars_held": 0
+    },
+    {
+      "symbol": "BCH/USD",
+      "side": "BUY",
+      "regime": "rango",
+      "entry_price": 209.99,
+      "stop_loss": 208.38304,
+      "take_profit": 211.20892,
+      "net_pnl_usd": 0.0,
+      "rr_ratio": 0,
+      "timestamp": "2026-07-25T20:02:17.821653"
     }
   ],
   "failed_symbols": {
@@ -175,9 +188,9 @@
   "adjustments": [],
   "strategy_stats": {
     "rango": {
-      "trades": 12,
+      "trades": 13,
       "wins": 0,
-      "losses": 12,
+      "losses": 13,
       "pnl": 0.0,
       "avg_rr": 0.0
     }
@@ -196,10 +209,10 @@
       "consecutive_fails": 4
     },
     "BCH/USD": {
-      "trades": 3,
+      "trades": 4,
       "wins": 0,
       "pnl": 0.0,
-      "consecutive_fails": 3
+      "consecutive_fails": 4
     }
   }
 }
