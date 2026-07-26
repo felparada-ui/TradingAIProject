@@ -76,7 +76,11 @@ class TradingStrategist:
         Selecciona la estrategia con mejor rendimiento HISTÓRICO para este activo.
         Si no hay datos históricos, elige por régimen.
         """
-        play = self.playbook.get(symbol.upper(), {})
+        play = self.playbook.get(symbol.upper(), {
+            "strategies": ["mean_reversion", "breakout", "momentum"],
+            "session": self._guess_session(symbol),
+            "min_vol": self._guess_min_vol(symbol),
+        })
         weights = self.strategy_weights.get(symbol.upper(), {"mean_reversion": 1.0, "breakout": 1.0, "momentum": 1.0})
 
         hour = market_context.get("hour", 12)
@@ -86,7 +90,7 @@ class TradingStrategist:
 
         # Elegir estrategia: la de mayor peso histórico
         best_strategy = max(weights, key=lambda s: weights[s])
-        # Pero si el régimen sugiere otra, darle bonus
+        # Bonus por régimen
         regime_map = {"tendencia": "breakout", "rango": "mean_reversion", "alta_volatilidad": "momentum"}
         regime_strategy = regime_map.get(regime, "mean_reversion")
         if weights.get(regime_strategy, 0) >= weights.get(best_strategy, 0) * 0.8:
@@ -94,49 +98,10 @@ class TradingStrategist:
 
         strategy = best_strategy
 
-        # Penalización por sesión (solo si hay datos de sesión)
-        session = play.get("session", "24h")
-        penalty = self._session_penalty(session, hour)
-        if penalty:
-            warnings.append(f"Fuera de sesion optima ({session}: {hour}h) — penalizando confianza")
-            adjustments["confidence_penalty"] = penalty
-
-        # Penalización por contexto de mercado
-        if mood == "cauteloso":
-            adjustments["confidence_penalty"] = adjustments.get("confidence_penalty", 0) - 10
-        elif mood == "peligroso":
-            adjustments["confidence_penalty"] = adjustments.get("confidence_penalty", 0) - 25
-
         hour = market_context.get("hour", 12)
         mood = market_context.get("market_mood", "favorable")
         warnings = []
         adjustments = {}
-
-        # ─── Seleccionar estrategia base ─────────────────────────────────
-        if regime == "tendencia":
-            # En tendencia, siempre breakout
-            strategy = "breakout"
-        elif regime == "alta_volatilidad":
-            # Alta volatilidad: momentum
-            strategy = "momentum"
-        else:
-            # Rango: usar default del playbook
-            strategy = play["default"]
-
-        # ─── Ajustar por sesión ──────────────────────────────────────────
-        session = play["session"]
-        if session == "london" and (hour < 7 or hour > 16):
-            warnings.append(f"Fuera de sesion London ({session}: {hour}h) — señal debil")
-            adjustments["confidence_penalty"] = -10
-        elif session == "asia" and (hour < 0 or hour > 9):
-            warnings.append(f"Fuera de sesion Asia ({session}: {hour}h)")
-            adjustments["confidence_penalty"] = -10
-        elif session == "london_ny" and (hour < 7 or hour > 21):
-            warnings.append(f"Fuera de sesion principal ({session}: {hour}h)")
-            adjustments["confidence_penalty"] = -15
-        elif session == "asia_london" and (hour < 1 or hour > 17):
-            warnings.append(f"Fuera de ventana Asia-London")
-            adjustments["confidence_penalty"] = -10
 
         # ─── Ajustar por contexto del mercado ────────────────────────────
         if mood == "cauteloso":
@@ -149,16 +114,16 @@ class TradingStrategist:
         # ─── Filtrar estrategia por régimen incompatible ─────────────────
         if strategy == "mean_reversion" and regime == "tendencia":
             warnings.append("MR en tendencia — no recomendado")
-            strategy = play["alternate"]
+            sorted_strats = sorted(weights, key=lambda s: weights[s], reverse=True)
+            strategy = sorted_strats[1] if len(sorted_strats) > 1 else "breakout"
         if strategy == "breakout" and regime == "rango" and mood == "cauteloso":
             warnings.append("Breakout en rango con mercado cauteloso — falso breakout probable")
-            strategy = play["alternate"]
+            sorted_strats = sorted(weights, key=lambda s: weights[s], reverse=True)
+            strategy = sorted_strats[1] if len(sorted_strats) > 1 else "mean_reversion"
 
         result = {
             "selected_strategy": strategy,
-            "playbook_default": play["default"],
-            "alternate": play["alternate"],
-            "session": play["session"],
+            "session": play.get("session", "24h"),
             "warnings": warnings,
             "adjustments": adjustments,
             "filters": self.filters.get(strategy, {}),
