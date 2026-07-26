@@ -178,7 +178,7 @@ class MT5Executor:
             return {"error": f"Precio inválido para {mt5_symbol}: {current_price}", "order_sent": False}
 
         # El volumen ya viene en lotes MT5 (0.01, 0.10, 1.0, etc.)
-        mt5_volume = max(0.01, min(0.10, round(volume, 2)))  # Máx 0.10 lotes para seguridad en demo $500
+        mt5_volume = max(0.01, min(0.50, round(volume, 2)))  # Máx 0.50 lotes (con SL ajustado, riesgo controlado)
 
         request = {
             "action": mt5.TRADE_ACTION_DEAL,

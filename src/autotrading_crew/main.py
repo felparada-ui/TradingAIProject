@@ -280,8 +280,16 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     print(f"   Tamaño: {pos_size['units']} unidades @ ${pos_size['position_value']:.2f}")
     print(f"   Riesgo: {pos_size['risk_pct']:.2f}% del capital")
 
-    # Circuit breaker
-    cb = risk_manager.check_circuit_breaker(0)
+    # Circuit breaker (con PnL real desde MT5)
+    real_pnl = 0
+    try:
+        import MetaTrader5 as mt5_cb
+        positions = mt5_cb.positions_get()
+        if positions:
+            real_pnl = sum(p.profit + p.swap for p in positions)
+    except Exception:
+        pass
+    cb = risk_manager.check_circuit_breaker(real_pnl)
     if cb["circuit_breaker_active"]:
         print(f"   ❌ Circuit breaker activo: {', '.join(cb['reasons'])}")
         return
