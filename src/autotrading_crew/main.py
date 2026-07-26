@@ -229,6 +229,11 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
               f"Conf: {base_confidence:.0f}% → {adjusted_confidence:.0f}% "
               f"(sent: {sentiment_adj:+.1f})")
 
+    # ─── Verificar si hay candidatos después del filtro del Estratega ──────
+    if not candidates:
+        print("\n   📭 Ninguna señal superó los filtros del Trading Strategist")
+        return
+
     # ─── DEBATE / CONSENSO ─────────────────────────────────────────────────
     # Verificar si hay discrepancia > 30% entre técnico y sentimiento
     best_candidate = max(candidates, key=lambda c: c["adjusted_confidence"])
