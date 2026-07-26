@@ -232,6 +232,7 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
     # ─── Verificar si hay candidatos después del filtro del Estratega ──────
     if not candidates:
         print("\n   📭 Ninguna señal superó los filtros del Trading Strategist")
+        _send_message(f"🔍 Ciclo {datetime.now().strftime('%H:%M')} — Sin setups. Escaneando en 5 min...")
         return
 
     # ─── DEBATE / CONSENSO ─────────────────────────────────────────────────
@@ -413,6 +414,13 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
             print(f"   ✅ Orden ejecutada: ID={exec_result.get('order_id')} | "
                   f"Precio=${exec_result.get('price', 0)} | "
                   f"Volumen={exec_result.get('volume', 0)}")
+            _send_message(
+                f"🚀 <b>Trade ejecutado</b>\n"
+                f"• {best_candidate['symbol']} {best_candidate['signal']}\n"
+                f"• Precio: ${exec_result.get('price', 0):.2f}\n"
+                f"• Vol: {exec_result.get('volume', 0)}\n"
+                f"• SL: ${best_candidate['stop_loss']:.2f} | TP: ${best_candidate['take_profit']:.2f}"
+            )
         else:
             error = exec_result.get('error', 'Desconocido')
             _perf_monitor.register_failed_execution(best_candidate["symbol"], error)
