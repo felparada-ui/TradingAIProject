@@ -1,0 +1,244 @@
+{
+  "playbook": {
+    "EUR/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "GBP/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "USD/JPY": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "AUD/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "USD/CAD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "NZD/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "USD/CHF": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "EUR/JPY": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "GBP/JPY": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "BTC/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.005
+    },
+    "ETH/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.005
+    },
+    "SOL/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.005
+    },
+    "BCH/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.005
+    },
+    "LTC/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.005
+    },
+    "XRP/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.005
+    },
+    "XAU/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    },
+    "XAG/USD": {
+      "strategies": [
+        "mean_reversion",
+        "breakout",
+        "momentum"
+      ],
+      "session": "24h",
+      "min_vol": 0.0003
+    }
+  },
+  "weights": {
+    "EUR/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "GBP/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "USD/JPY": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "AUD/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "USD/CAD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "NZD/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "USD/CHF": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "EUR/JPY": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "GBP/JPY": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "BTC/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "ETH/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "SOL/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "BCH/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "LTC/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "XRP/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "XAU/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    },
+    "XAG/USD": {
+      "mean_reversion": 1.0,
+      "breakout": 1.0,
+      "momentum": 1.0
+    }
+  }
+}

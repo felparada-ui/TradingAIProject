@@ -192,7 +192,7 @@ def run_autonomous_cycle(config: dict, risk_manager: RiskManager):
 
         # ─── Trading Strategist: filtra entradas malas ─────────────────
         strategy_plan = strategist.select_strategy(
-            symbol, regimes[symbol]["regime_name"], context
+            symbol, regimes[symbol]["regime"], context
         )
         spread_value = 0
         if hasattr(crew_tools._executor, '_last_tick') and crew_tools._executor._last_tick:
